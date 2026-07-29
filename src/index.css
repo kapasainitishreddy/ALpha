@@ -1,0 +1,53 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: #0b0e14;
+  color: #e6edf3;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior-y: none;
+}
+
+@layer components {
+  .card {
+    @apply bg-panel border border-edge rounded-2xl p-4;
+  }
+  .btn {
+    @apply rounded-xl px-4 py-3 font-semibold text-sm transition active:scale-95 disabled:opacity-40;
+  }
+  .btn-primary {
+    @apply btn bg-accent text-bg;
+  }
+  .btn-ghost {
+    @apply btn bg-panel2 text-ink border border-edge;
+  }
+  .btn-up {
+    @apply btn bg-up text-bg;
+  }
+  .btn-down {
+    @apply btn bg-down text-bg;
+  }
+  .chip {
+    @apply text-xs px-2 py-1 rounded-lg bg-panel2 text-muted border border-edge;
+  }
+  .label {
+    @apply text-xs text-muted uppercase tracking-wide;
+  }
+  .input {
+    @apply bg-panel2 border border-edge rounded-xl px-3 py-2 text-ink w-full outline-none focus:border-accent;
+  }
+  /* Father Mode: bigger everything */
+  .father .btn { @apply text-lg py-4 rounded-2xl; }
+  .father .card { @apply p-5; }
+  .father { font-size: 1.06rem; }
+}

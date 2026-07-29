@@ -1,0 +1,44 @@
+// Modular strategy definitions. Logic lives in strategyEngine.ts; this is the documentation/metadata.
+
+export interface StrategyDoc {
+  id: string
+  name: string
+  type: string
+  bestMarket: string
+  badMarket: string
+  entry: string
+  exit: string
+  stopLoss: string
+  target: string
+  riskReward: string
+  beginner: string
+  father: string // Telugu-English simplified
+  category: 'beginner' | 'quant' | 'ai'
+}
+
+export const STRATEGY_DOCS: StrategyDoc[] = [
+  { id: 'rsi-bounce', name: 'RSI Bounce', type: 'mean-reversion', bestMarket: 'Range / sideways', badMarket: 'Strong trend', entry: 'Buy when RSI < 30 and turning up', exit: 'RSI back to 50-60', stopLoss: 'Below recent swing low', target: '2x risk', riskReward: '1:2', beginner: 'Buy when the stock is oversold and starting to bounce.', father: 'RSI takkuva (oversold) unte, bounce vachchey chance. Kani trend strong unte careful.', category: 'beginner' },
+  { id: 'ma-crossover', name: 'Moving Average Crossover', type: 'trend', bestMarket: 'Trending', badMarket: 'Choppy', entry: 'Fast MA crosses above slow MA', exit: 'Fast MA crosses below', stopLoss: 'Below slow MA', target: 'Trail with MA', riskReward: '1:2', beginner: 'Enter when a fast average crosses above a slow one.', father: 'Fast line slow line ni cross chesthe, trend start. Cross reverse ayithe exit.', category: 'beginner' },
+  { id: 'ema-trend', name: 'EMA Trend Follow', type: 'trend', bestMarket: 'Steady trend', badMarket: 'Sideways', entry: 'Price above rising EMA(20)', exit: 'Price closes below EMA', stopLoss: 'Below EMA', target: 'Trail', riskReward: '1:2.5', beginner: 'Ride the trend while price stays above a rising EMA.', father: 'Price EMA meedha unte trend up. EMA kinda paddithe exit. Trend friend.', category: 'beginner' },
+  { id: 'breakout-volume', name: 'Breakout With Volume', type: 'breakout', bestMarket: 'Volatility expansion', badMarket: 'Low volume', entry: 'Close above resistance with high volume', exit: 'Momentum fades', stopLoss: 'Below breakout level', target: '2x risk', riskReward: '1:2', beginner: 'Buy a breakout only when volume confirms it.', father: 'Resistance break + volume unte real breakout. Volume lekunte trap.', category: 'beginner' },
+  { id: 'opening-range-breakout', name: 'Opening Range Breakout', type: 'breakout', bestMarket: 'Volatile open', badMarket: 'Flat open', entry: 'Break of first 15-min range', exit: 'End of session', stopLoss: 'Other side of range', target: '1.5x range', riskReward: '1:1.5', beginner: 'Trade the break of the first-hour range.', father: 'Morning range break ayithe direction. Range lopala unte wait.', category: 'beginner' },
+  { id: 'support-resistance', name: 'Support and Resistance Bounce', type: 'mean-reversion', bestMarket: 'Range', badMarket: 'Breakout day', entry: 'Buy at support, sell at resistance', exit: 'Opposite level', stopLoss: 'Beyond the level', target: 'Range width', riskReward: '1:2', beginner: 'Buy near support, sell near resistance.', father: 'Support daggara buy, resistance daggara sell. Level break ayithe stop.', category: 'beginner' },
+  { id: 'mean-reversion', name: 'Mean Reversion', type: 'mean-reversion', bestMarket: 'Range', badMarket: 'Trend', entry: 'Price far below average', exit: 'Back to average', stopLoss: 'Fixed %', target: 'Mean', riskReward: '1:1.5', beginner: 'Bet that price returns to its average.', father: 'Price average nunchi dooram vellithe malli vasthundi ane idea. Trend lo danger.', category: 'beginner' },
+  { id: 'vwap-reclaim', name: 'VWAP Reclaim', type: 'intraday', bestMarket: 'Intraday reversal', badMarket: 'Strong one-way', entry: 'Price reclaims VWAP from below', exit: 'Loses VWAP', stopLoss: 'Below VWAP', target: '2x risk', riskReward: '1:2', beginner: 'Enter when price reclaims the VWAP line.', father: 'VWAP ni price malli paiki reclaim chesthe strength. Kinda paddithe weak.', category: 'beginner' },
+  { id: 'momentum', name: 'Momentum Strategy', type: 'momentum', bestMarket: 'Trending / news', badMarket: 'Range', entry: 'Strong up-candles with volume', exit: 'Momentum slows', stopLoss: 'Below last swing', target: 'Trail', riskReward: '1:2', beginner: 'Ride strong momentum, exit when it slows.', father: 'Fast up move + volume unte momentum. Slow ayithe book profit.', category: 'beginner' },
+  { id: 'volatility-breakout', name: 'Volatility Breakout', type: 'breakout', bestMarket: 'Volatility spike', badMarket: 'Quiet', entry: 'Break of ATR-based band', exit: 'Return inside band', stopLoss: 'ATR stop', target: '2x ATR', riskReward: '1:2', beginner: 'Trade breaks of a volatility band.', father: 'Volatility peruguthunte band break ki trade. Chinna size.', category: 'beginner' },
+  { id: 'pairs-trading', name: 'Pairs Trading Simulation', type: 'quant', bestMarket: 'Correlated pairs diverge', badMarket: 'Regime break', entry: 'Long weak / short strong when spread wide', exit: 'Spread narrows', stopLoss: 'Spread widens further', target: 'Mean spread', riskReward: '1:1.5', beginner: 'Trade the spread between two related instruments.', father: 'Rendu related stocks madhya difference ni trade cheyyadam. Advanced.', category: 'quant' },
+  { id: 'grid', name: 'Grid Simulation', type: 'quant', bestMarket: 'Range', badMarket: 'Trend', entry: 'Buy/sell at grid levels', exit: 'Next grid level', stopLoss: 'Outside grid', target: 'Grid step', riskReward: '1:1', beginner: 'Place staggered buy/sell orders across a range.', father: 'Range lo level level ki orders. Trend lo loss ekkuva.', category: 'quant' },
+  { id: 'market-making', name: 'Market-Making Simulation', type: 'quant', bestMarket: 'High liquidity range', badMarket: 'Fast trend', entry: 'Quote both sides of spread', exit: 'Inventory neutral', stopLoss: 'Inventory limit', target: 'Spread capture', riskReward: '1:1', beginner: 'Earn the bid-ask spread by quoting both sides.', father: 'Buy-sell spread capture cheyyadam. Chala advanced, simulation matrame.', category: 'quant' },
+  { id: 'arbitrage', name: 'Arbitrage Simulation', type: 'quant', bestMarket: 'Price gaps between venues', badMarket: 'No gap', entry: 'Buy cheap venue / sell dear', exit: 'Gap closes', stopLoss: 'Execution risk', target: 'Gap', riskReward: '1:1', beginner: 'Exploit price differences between venues.', father: 'Rendu chotla price difference. Real lo fees tho kastam.', category: 'quant' },
+  { id: 'portfolio-alloc', name: 'Portfolio Allocation Simulation', type: 'quant', bestMarket: 'Any (diversified)', badMarket: 'Correlated crash', entry: 'Weight across assets', exit: 'Rebalance', stopLoss: 'Portfolio stop', target: 'Risk-adjusted return', riskReward: 'N/A', beginner: 'Spread capital across assets by risk.', father: 'Capital ni divide chesi risk balance cheyyadam. Idi swarm idea.', category: 'quant' },
+  { id: 'rl-experiment', name: 'Reinforcement Learning Experiment', type: 'quant', bestMarket: 'Experimental', badMarket: 'Live trading', entry: 'Learned policy (placeholder)', exit: 'Learned policy', stopLoss: 'Risk cap', target: 'Reward', riskReward: 'N/A', beginner: 'A placeholder for a learning agent, experiment only.', father: 'AI nerchukune experiment. Real trade ki kaadu.', category: 'quant' },
+  { id: 'multi-agent-debate', name: 'Multi-Agent Debate Strategy', type: 'ai', bestMarket: 'Uncertain', badMarket: 'Fast news', entry: 'Bull vs bear consensus', exit: 'Consensus flips', stopLoss: 'Risk case veto', target: '2x risk', riskReward: '1:2', beginner: 'Bull and bear cases debate before a decision.', father: 'Bull case, bear case debate chesi decision. Risk case veto cheyyacchu.', category: 'ai' },
+  { id: 'news-sentiment', name: 'News Sentiment Confirmation', type: 'ai', bestMarket: 'News days', badMarket: 'Quiet', entry: 'Technical + positive sentiment agree', exit: 'Sentiment fades', stopLoss: 'Below entry structure', target: '2x risk', riskReward: '1:2', beginner: 'Only take a technical trade if sentiment agrees.', father: 'Chart + news rendu agree ayithe matrame trade. (Mock sentiment)', category: 'ai' },
+  { id: 'tech-sentiment-score', name: 'Technical + Sentiment Combined Score', type: 'ai', bestMarket: 'Mixed', badMarket: 'Extreme events', entry: 'Blended score above threshold', exit: 'Score drops', stopLoss: 'Structure', target: '2x risk', riskReward: '1:2', beginner: 'Combine chart and sentiment into one score.', father: 'Chart score + sentiment score kalipi decision.', category: 'ai' },
+  { id: 'risk-first-reject', name: 'Risk-First Strategy Rejection', type: 'ai', bestMarket: 'Any', badMarket: 'None', entry: 'Only if Risk Guard approves', exit: 'On any risk breach', stopLoss: 'Mandatory', target: 'Conservative', riskReward: '1:1.5', beginner: 'Reject any trade that fails risk checks first.', father: 'Modata risk chudadam. Risk ekkuva unte trade cancel. Capital first.', category: 'ai' },
+]
+
+export function getStrategyDoc(id: string): StrategyDoc | undefined {
+  return STRATEGY_DOCS.find((s) => s.id === id)
+}

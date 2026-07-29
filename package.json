@@ -1,0 +1,26 @@
+{
+  "name": "blackscythe-alpha",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "lightweight-charts": "4.2.3",
+    "lucide-react": "1.24.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "react-router-dom": "6.30.4",
+    "zustand": "4.5.7"
+  },
+  "devDependencies": {
+    "postcss": "8.5.19",
+    "tailwindcss": "3.4.19",
+    "typescript": "5.9.3",
+    "vite": "5.4.21",
+    "vitest": "2.1.9"
+  }
+}
