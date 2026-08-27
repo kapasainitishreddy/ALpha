@@ -5,6 +5,7 @@ const UPSTREAM_MAX_BYTES = 128 * 1024
 
 const baseHeaders = {
   'Content-Type': 'application/json; charset=utf-8',
+  'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
   'X-Content-Type-Options': 'nosniff',
   'Referrer-Policy': 'no-referrer',
   'Cache-Control': 'public, max-age=10, stale-while-revalidate=30',
