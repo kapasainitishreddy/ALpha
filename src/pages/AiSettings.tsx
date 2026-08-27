@@ -61,11 +61,11 @@ export default function AiSettings() {
                 <input className="input" value={llm.model} onChange={(e) => setLlm({ model: e.target.value })} />
               </Field>
               <Field label={`API key (${preset?.keyHint || 'optional'})`}>
-                <input className="input" type="password" value={llm.apiKey} onChange={(e) => setLlm({ apiKey: e.target.value })} placeholder="paste key" />
+                <input className="input" type="password" autoComplete="off" value={llm.apiKey} onChange={(e) => setLlm({ apiKey: e.target.value })} placeholder="paste key — cleared on reload" />
               </Field>
             </div>
             <Banner tone="warn">
-              Keys are stored only in this browser. Never enter a key on a shared device. Rate limit: max {LLM_CALLS_PER_MINUTE} AI answers per minute (protects your key quota). Some providers block browser calls (CORS); Groq, NVIDIA and Ollama are the reliable choices.
+              Your AI key stays in memory for this tab only. It is not saved to localStorage or backups and is cleared on reload. Rate limit: max {LLM_CALLS_PER_MINUTE} AI answers per minute. Some providers block browser calls (CORS); Groq, NVIDIA and Ollama are the reliable choices.
             </Banner>
           </Section>
 
