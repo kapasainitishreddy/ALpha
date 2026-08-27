@@ -13,8 +13,7 @@ export default function ApiSettings() {
   return (
     <div className="space-y-5">
       <Banner tone="warn">
-        <b>No key is required.</b> The app is fully free in mock mode. Keys are stored in your browser (localStorage) -
-        not highly secure. Never use a shared device. Never enter bank passwords, cards, or OTPs.
+        <b>No key is required.</b> The app is fully free in mock mode. Optional keys stay in memory for this tab only and are deliberately not saved to localStorage or backups. Reloading the app clears them. Never enter bank passwords, cards, or OTPs.
       </Banner>
       {GROUPS.map((g) => (
         <Section key={g.title} title={g.title}>
@@ -22,7 +21,7 @@ export default function ApiSettings() {
             {g.keys.map(({ k, label }) => (
               <Field key={k} label={label}>
                 <input
-                  className="input" type="password" placeholder="optional, leave blank"
+                  className="input" type="password" autoComplete="off" placeholder="optional, cleared on reload"
                   value={apiKeys[k] ?? ''} onChange={(e) => setKey(k, e.target.value)}
                 />
               </Field>

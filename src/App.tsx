@@ -33,6 +33,7 @@ import Insights from '@/pages/Insights'
 import ScenarioLab from '@/pages/ScenarioLab'
 import Arena from '@/pages/Arena'
 import Options from '@/pages/Options'
+import PerformanceQuality from '@/pages/PerformanceQuality'
 import { ToastHost } from '@/components/Toast'
 import { Onboarding } from '@/components/Onboarding'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
@@ -103,6 +104,7 @@ export default function App() {
           <Route path="/risk" element={<RiskTools />} />
           <Route path="/live" element={<LivePractice />} />
           <Route path="/progress" element={<Progress />} />
+          <Route path="/quality" element={<PerformanceQuality />} />
           <Route path="/challenge" element={<Challenge />} />
           <Route path="/builder" element={<StrategyBuilder />} />
           <Route path="/debate" element={<Debate />} />

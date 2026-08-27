@@ -6,7 +6,7 @@ import type { CustomStrategy } from '@/lib/customStrategy'
 import type { CustomScenario } from '@/lib/scenario'
 
 export interface ApiKeys {
-  // Optional user-provided keys. NEVER required. Stored in localStorage (with a UI warning).
+  // Optional user-provided keys. NEVER required. Session-memory only; never persisted.
   upstox?: string
   dhan?: string
   zerodha?: string
@@ -57,7 +57,7 @@ export interface DailyResult {
   trades: number
 }
 
-interface State {
+export interface State {
   fatherMode: boolean
   balance: number // MOCK rupees
   startingBalance: number
@@ -100,6 +100,68 @@ interface State {
   resetDay: () => void
   resetAll: () => void
 }
+
+export const PERSIST_KEY = 'blackscythe-alpha'
+
+interface StorageLike {
+  getItem: (key: string) => string | null
+  setItem: (key: string, value: string) => void
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+/**
+ * Remove credentials left by older builds before Zustand hydrates them into memory.
+ * The function is injectable so the migration can be regression-tested without a browser.
+ */
+export function purgeLegacyPersistedSecrets(storage?: StorageLike): boolean {
+  if (!storage) return false
+  const raw = storage.getItem(PERSIST_KEY)
+  if (!raw) return false
+
+  try {
+    const envelope = JSON.parse(raw) as unknown
+    if (!isRecord(envelope) || !isRecord(envelope.state)) return false
+    const state = envelope.state
+    const hadApiKeys = isRecord(state.apiKeys) && Object.values(state.apiKeys).some((v) => typeof v === 'string' && v.length > 0)
+    const hadLlmKey = isRecord(state.llm) && typeof state.llm.apiKey === 'string' && state.llm.apiKey.length > 0
+    if (!hadApiKeys && !hadLlmKey) return false
+
+    state.apiKeys = {}
+    if (isRecord(state.llm)) state.llm = { ...state.llm, apiKey: '' }
+    storage.setItem(PERSIST_KEY, JSON.stringify(envelope))
+    return true
+  } catch {
+    // Corrupt storage is handled by Zustand's normal initialization path. Never throw on startup.
+    return false
+  }
+}
+
+/** Persist all normal app state while deliberately excluding bearer/API credentials. */
+export function sanitizeStateForPersistence(state: State): Partial<State> {
+  const { apiKeys: _apiKeys, llm, ...safe } = state
+  return { ...safe, apiKeys: {}, llm: { ...llm, apiKey: '' } }
+}
+
+/** Never rehydrate credentials, including from an older or manually modified persisted payload. */
+export function mergePersistedState(persistedState: unknown, currentState: State): State {
+  const persisted = isRecord(persistedState) ? persistedState : {}
+  const storedLlm = isRecord(persisted.llm) ? persisted.llm : {}
+  return {
+    ...currentState,
+    ...persisted,
+    apiKeys: {},
+    llm: {
+      ...currentState.llm,
+      ...storedLlm,
+      apiKey: '',
+    },
+  } as State
+}
+
+if (typeof window !== 'undefined') purgeLegacyPersistedSecrets(window.localStorage)
 
 export const todayKey = (d = new Date()): string =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
@@ -223,7 +285,11 @@ export const useStore = create<State>()(
           dailyResults: [],
         }),
     }),
-    { name: 'blackscythe-alpha' },
+    {
+      name: PERSIST_KEY,
+      partialize: sanitizeStateForPersistence,
+      merge: mergePersistedState,
+    },
   ),
 )
 
