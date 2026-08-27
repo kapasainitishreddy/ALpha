@@ -14,6 +14,7 @@ const LINKS = [
   { to: '/debate', Icon: Swords, label: 'Agent Debate — bull vs bear' },
   { to: '/arena', Icon: Trophy, label: 'Daily Challenge & Leaderboard' },
   { to: '/insights', Icon: BarChart3, label: 'Insights — what suits you' },
+  { to: '/quality', Icon: BarChart3, label: 'Performance Quality — expectancy & drawdown' },
   { to: '/scenarios', Icon: Clapperboard, label: 'Scenario Lab — build a market' },
   { to: '/options', Icon: Layers, label: 'Option Chain (learn only)' },
   { to: '/challenge', Icon: Flag, label: 'Challenge Mode' },
