@@ -7,8 +7,9 @@
     "dev": "vite",
     "build": "vite build",
     "test": "vitest run",
+    "test:quote": "node --test netlify/functions/*.node-test.mjs",
     "typecheck": "tsc --noEmit",
-    "verify": "npm test && npm run typecheck && npm run build"
+    "verify": "npm test && npm run test:quote && npm run typecheck && npm run build"
   },
   "dependencies": {
     "lightweight-charts": "4.2.3",
