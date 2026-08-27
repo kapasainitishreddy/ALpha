@@ -65,7 +65,7 @@ export default function AiSettings() {
               </Field>
             </div>
             <Banner tone="warn">
-              Your AI key stays in memory for this tab only. It is not saved to localStorage or backups and is cleared on reload. Rate limit: max {LLM_CALLS_PER_MINUTE} AI answers per minute. Some providers block browser calls (CORS); Groq, NVIDIA and Ollama are the reliable choices.
+              Your AI key stays in memory for this tab only. It is not saved to localStorage or backups and is cleared on reload. Rate limit: max {LLM_CALLS_PER_MINUTE} AI answers per minute. A remote provider receives the prompts and, when required, your key, so use only an HTTPS provider you trust; local Ollama may use localhost HTTP. Redirects to another host are blocked.
             </Banner>
           </Section>
 
