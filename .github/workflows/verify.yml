@@ -17,6 +17,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      - run: node scripts/secret-scan.mjs
       - run: npm ci
       - run: npm run verify
       - run: npm audit --omit=dev --audit-level=high
