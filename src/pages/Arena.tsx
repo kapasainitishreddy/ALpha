@@ -7,7 +7,7 @@ import { useStore, modeLabel, todayKey, type Mood } from '@/store/useStore'
 import { leaderboard } from '@/lib/insights'
 import { MARKET_EVENTS } from '@/data/marketEvents'
 import { MOCK_SYMBOLS } from '@/data/mockSymbols'
-import { hashSeed } from '@/lib/rng'
+import { dailySetup } from '@/lib/dailySetup'
 import { shareText } from '@/lib/share'
 import { inr, pnlColor } from '@/lib/format'
 
@@ -21,14 +21,6 @@ const MOODS: { id: Mood; label: string; hint: string }[] = [
 
 // The daily challenge is derived from the date, so everyone gets the same market on the same
 // day and results are comparable — without any server.
-function todaysSetup(date: string) {
-  const seed = hashSeed(date)
-  // >>> not >>: hashSeed returns an unsigned 32-bit value, and a signed shift turns anything
-  // above 2^31 negative — which then indexes the array out of bounds and yields undefined.
-  const symbol = MOCK_SYMBOLS[seed % MOCK_SYMBOLS.length]
-  const event = MARKET_EVENTS[(seed >>> 8) % MARKET_EVENTS.length]
-  return { symbol, event }
-}
 
 export default function Arena() {
   const { journal, dailyResults, moods, logMood } = useStore()
@@ -36,7 +28,7 @@ export default function Arena() {
   const [tab, setTab] = useState<'daily' | 'board'>('daily')
 
   const today = todayKey()
-  const setup = useMemo(() => todaysSetup(today), [today])
+  const setup = useMemo(() => dailySetup(today), [today])
   const doneToday = dailyResults.find((d) => d.date === today)
   const board = useMemo(() => leaderboard(journal), [journal])
   const moodToday = moods.filter((m) => new Date(m.at).toDateString() === new Date().toDateString()).slice(-1)[0]
@@ -117,7 +109,7 @@ export default function Arena() {
                 )}
               </Section>
 
-              <Link to={`/manual?symbol=${setup.symbol.symbol}&event=${setup.event.id}`} className="btn-primary w-full block text-center">
+              <Link to={`/manual?symbol=${setup.symbol.symbol}&event=${setup.event.id}&daily=${today}`} className="btn-primary w-full block text-center">
                 Play today's market
               </Link>
               <p className="text-xs text-muted text-center">

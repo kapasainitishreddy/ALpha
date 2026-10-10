@@ -7,22 +7,24 @@ export function speechAvailable(): boolean {
 }
 
 // Prefer an Indian-English or Telugu voice when the device has one; fall back to any English.
-function pickVoice(): SpeechSynthesisVoice | null {
+function pickVoice(lang: string): SpeechSynthesisVoice | null {
   const voices = window.speechSynthesis.getVoices()
   if (!voices.length) return null
   return (
-    voices.find((v) => v.lang === 'te-IN') ??
+    voices.find((v) => v.lang === lang) ??
     voices.find((v) => v.lang === 'en-IN') ??
     voices.find((v) => v.lang.startsWith('en')) ??
     voices[0]
   )
 }
 
-export function speak(text: string, opts: { rate?: number } = {}): void {
+export function speak(text: string, opts: { rate?: number; language?: string } = {}): void {
   if (!speechAvailable() || !text.trim()) return
   window.speechSynthesis.cancel()
   const u = new SpeechSynthesisUtterance(text)
-  const v = pickVoice()
+  const lang = opts.language ?? 'en-IN'
+  u.lang = lang
+  const v = pickVoice(lang)
   if (v) {
     u.voice = v
     u.lang = v.lang

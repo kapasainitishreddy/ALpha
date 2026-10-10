@@ -1,6 +1,9 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@config "../tailwind.config.cjs";
+
+@utility btn {
+  @apply rounded-xl px-4 py-3 font-semibold text-sm transition active:scale-95 disabled:opacity-40;
+}
 
 :root {
   color-scheme: dark;
@@ -21,9 +24,6 @@ body {
 @layer components {
   .card {
     @apply bg-panel border border-edge rounded-2xl p-4;
-  }
-  .btn {
-    @apply rounded-xl px-4 py-3 font-semibold text-sm transition active:scale-95 disabled:opacity-40;
   }
   .btn-primary {
     @apply btn bg-accent text-bg;
@@ -47,7 +47,10 @@ body {
     @apply bg-panel2 border border-edge rounded-xl px-3 py-2 text-ink w-full outline-none focus:border-accent;
   }
   /* Father Mode: bigger everything */
-  .father .btn { @apply text-lg py-4 rounded-2xl; }
+  .father button[class*="btn-"] { @apply text-lg py-4 rounded-2xl; }
   .father .card { @apply p-5; }
   .father { font-size: 1.06rem; }
 }
+
+:focus-visible { outline: 2px solid #f59e0b; outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }

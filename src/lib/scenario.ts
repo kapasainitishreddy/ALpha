@@ -65,8 +65,8 @@ export function encodeScenario(s: CustomScenario): string {
     Math.round((s.newsImpact ?? 0) * 1e4),
   ]
   const body = nums.map((n) => n.toString(36)).join('.')
-  const name = encodeURIComponent(s.name).slice(0, 40)
-  const text = s.newsText ? encodeURIComponent(s.newsText).slice(0, 60) : ''
+  const name = encodeURIComponent(s.name.slice(0, 40))
+  const text = s.newsText ? encodeURIComponent(s.newsText.slice(0, 60)) : ''
   return `BS1~${body}~${name}~${text}`
 }
 
@@ -82,14 +82,17 @@ export function decodeScenario(code: string): CustomScenario | null {
   if (nums.some((n) => !Number.isFinite(n))) return null
 
   const [drift, vol, gap, newsAt, newsImpact] = nums
+  let decodedName: string, decodedText: string | undefined
+  try { decodedName = name ? decodeURIComponent(name) : 'Shared scenario'; decodedText = text ? decodeURIComponent(text) : undefined } catch { return null }
+  if (Math.abs(drift / 1e5) > .1 || vol <= 0 || vol > 1000 || Math.abs(gap / 1e4) > .5 || newsAt < 0 || newsAt > 5000 || Math.abs(newsImpact / 1e4) > .5) return null
   return {
     id: `shared-${Math.abs(drift)}-${vol}-${gap}`,
-    name: name ? decodeURIComponent(name) : 'Shared scenario',
+    name: decodedName,
     drift: drift / 1e5,
     volMultiplier: Math.max(0.2, vol / 100),
     gap: gap / 1e4,
     newsAt: newsAt || undefined,
-    newsText: text ? decodeURIComponent(text) : undefined,
+    newsText: decodedText,
     newsImpact: newsImpact ? newsImpact / 1e4 : undefined,
   }
 }

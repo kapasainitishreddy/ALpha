@@ -1,38 +1,46 @@
+import { useEffect, lazy, Suspense } from 'react'
+import { LANGUAGES, useTranslation, type Language } from '@/lib/i18n'
 import { NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { CandlestickChart, Ellipsis, Home as HomeIcon, Network, UserRound } from 'lucide-react'
 import { useStore } from '@/store/useStore'
 import { inr, pnlColor } from '@/lib/format'
 import { MockBadge } from '@/components/common'
 
-import Home from '@/pages/Home'
-import FatherMode from '@/pages/FatherMode'
-import Coach from '@/pages/Coach'
-import ManualTrade from '@/pages/ManualTrade'
-import AssistedTrade from '@/pages/AssistedTrade'
-import AutoTrade from '@/pages/AutoTrade'
-import Swarm from '@/pages/Swarm'
-import StrategyLab from '@/pages/StrategyLab'
-import BacktestLab from '@/pages/BacktestLab'
-import CompoundSim from '@/pages/CompoundSim'
-import Journal from '@/pages/Journal'
-import Comparison from '@/pages/Comparison'
-import MarketSim from '@/pages/MarketSim'
-import Watchlist from '@/pages/Watchlist'
-import ApiSettings from '@/pages/ApiSettings'
-import AiSettings from '@/pages/AiSettings'
-import DatasetBuilder from '@/pages/DatasetBuilder'
-import RealMode from '@/pages/RealMode'
-import More from '@/pages/More'
-import RiskTools from '@/pages/RiskTools'
-import LivePractice from '@/pages/LivePractice'
-import Progress from '@/pages/Progress'
-import Challenge from '@/pages/Challenge'
-import StrategyBuilder from '@/pages/StrategyBuilder'
-import Debate from '@/pages/Debate'
-import Insights from '@/pages/Insights'
-import ScenarioLab from '@/pages/ScenarioLab'
-import Arena from '@/pages/Arena'
-import Options from '@/pages/Options'
+const Derivatives = lazy(() => import('@/pages/Derivatives'))
+const Replay = lazy(() => import('@/pages/Replay'))
+const Models = lazy(() => import('@/pages/Models'))
+const Portfolio = lazy(() => import('@/pages/Portfolio'))
+const Learn = lazy(() => import('@/pages/Learn'))
+const Research = lazy(() => import('@/pages/Research'))
+const Home = lazy(() => import('@/pages/Home'))
+const FatherMode = lazy(() => import('@/pages/FatherMode'))
+const Coach = lazy(() => import('@/pages/Coach'))
+const ManualTrade = lazy(() => import('@/pages/ManualTrade'))
+const AssistedTrade = lazy(() => import('@/pages/AssistedTrade'))
+const AutoTrade = lazy(() => import('@/pages/AutoTrade'))
+const Swarm = lazy(() => import('@/pages/Swarm'))
+const StrategyLab = lazy(() => import('@/pages/StrategyLab'))
+const BacktestLab = lazy(() => import('@/pages/BacktestLab'))
+const CompoundSim = lazy(() => import('@/pages/CompoundSim'))
+const Journal = lazy(() => import('@/pages/Journal'))
+const Comparison = lazy(() => import('@/pages/Comparison'))
+const MarketSim = lazy(() => import('@/pages/MarketSim'))
+const Watchlist = lazy(() => import('@/pages/Watchlist'))
+const ApiSettings = lazy(() => import('@/pages/ApiSettings'))
+const AiSettings = lazy(() => import('@/pages/AiSettings'))
+const DatasetBuilder = lazy(() => import('@/pages/DatasetBuilder'))
+const RealMode = lazy(() => import('@/pages/RealMode'))
+const More = lazy(() => import('@/pages/More'))
+const RiskTools = lazy(() => import('@/pages/RiskTools'))
+const LivePractice = lazy(() => import('@/pages/LivePractice'))
+const Progress = lazy(() => import('@/pages/Progress'))
+const Challenge = lazy(() => import('@/pages/Challenge'))
+const StrategyBuilder = lazy(() => import('@/pages/StrategyBuilder'))
+const Debate = lazy(() => import('@/pages/Debate'))
+const Insights = lazy(() => import('@/pages/Insights'))
+const ScenarioLab = lazy(() => import('@/pages/ScenarioLab'))
+const Arena = lazy(() => import('@/pages/Arena'))
+const Options = lazy(() => import('@/pages/Options'))
 import { ToastHost } from '@/components/Toast'
 import { Onboarding } from '@/components/Onboarding'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
@@ -47,7 +55,10 @@ const NAV = [
 ]
 
 export default function App() {
-  const { balance, dailyPnl, fatherMode, startingBalance, onboarded, setOnboarded } = useStore()
+  const { balance, dailyPnl, fatherMode, startingBalance, stoppedToday, onboarded, setOnboarded } = useStore()
+  const { t, language } = useTranslation()
+  useEffect(() => { const tick = () => useStore.getState().ensureDay(); tick(); const id = setInterval(tick, 30000); return () => clearInterval(id) }, [])
+  useEffect(() => { document.documentElement.lang = language }, [language])
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -63,24 +74,29 @@ export default function App() {
             </div>
             <div className="text-[10px] text-muted">mock trading trainer for Indian markets</div>
           </button>
-          <MockBadge />
+          <div className="flex items-center gap-2"><select aria-label={t('language')} className="bg-panel border border-edge rounded p-1 text-xs" value={language} onChange={e => useStore.getState().setLanguage(e.target.value as Language)}>{Object.entries(LANGUAGES).map(([v,n]) => <option value={v} key={v}>{n}</option>)}</select><MockBadge /></div>
         </div>
         <div className="mt-2 flex items-center gap-4 text-sm">
           <div>
-            <span className="label mr-1">Mock balance</span>
+            <span className="label mr-1">{t('balance')}</span>
             <span className="font-bold">{inr(balance)}</span>
           </div>
           <div>
-            <span className="label mr-1">Today</span>
+            <span className="label mr-1">{t('today')}</span>
             <span className={`font-bold ${pnlColor(dailyPnl)}`}>{inr(dailyPnl)}</span>
           </div>
           <div className="ml-auto text-[10px] text-muted">start {inr(startingBalance)}</div>
         </div>
+        {stoppedToday && <p className="text-xs text-warn mt-2">Trading paused for today. Existing stops remain active.</p>}
       </header>
 
       <main className="flex-1 px-4 py-4 pb-24 space-y-6">
         <ErrorBoundary key={location.pathname}>
-        <Routes>
+        <Suspense fallback={<div className="card">{t('loading')}</div>}><Routes>
+          <Route path="/derivatives" element={<Derivatives />} />
+          <Route path="/replay" element={<Replay />} /><Route path="/models" element={<Models />} />
+          <Route path="/portfolio" element={<Portfolio />} />
+          <Route path="/learn" element={<Learn />} /><Route path="/research" element={<Research />} />
           <Route path="/" element={<Home />} />
           <Route path="/father" element={<FatherMode />} />
           <Route path="/coach" element={<Coach />} />
@@ -111,7 +127,7 @@ export default function App() {
           <Route path="/arena" element={<Arena />} />
           <Route path="/options" element={<Options />} />
           <Route path="/more" element={<More />} />
-        </Routes>
+        </Routes></Suspense>
         </ErrorBoundary>
       </main>
 
@@ -126,7 +142,7 @@ export default function App() {
             }
           >
             <Icon size={20} strokeWidth={1.8} />
-            {label}
+            {t(label.toLowerCase())}
           </NavLink>
         ))}
       </nav>

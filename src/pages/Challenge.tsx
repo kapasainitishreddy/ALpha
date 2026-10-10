@@ -13,12 +13,12 @@ const PRESETS = [
   {
     id: 'steady', name: 'Steady Builder', startCapital: 50_000, targetCapital: 55_000, days: 30, maxRiskPct: 1,
     blurb: '+10% in 30 days, risking 1% a trade.',
-    reality: 'Demanding but achievable. This is roughly what a good professional year looks like, compressed into a month.',
+    reality: 'A demanding hypothetical target. It is not a forecast or a typical professional return.',
   },
   {
     id: 'growth', name: 'Growth Push', startCapital: 25_000, targetCapital: 37_500, days: 30, maxRiskPct: 2,
     blurb: '+50% in 30 days, risking 2% a trade.',
-    reality: 'Aggressive. Possible in a favourable market, but most attempts end below break-even.',
+    reality: 'An aggressive hypothetical target. Results depend on the scenario and risk taken; no success rate is established.',
   },
   {
     id: 'double', name: 'Double or Nothing', startCapital: 10_000, targetCapital: 20_000, days: 14, maxRiskPct: 5,
@@ -28,7 +28,7 @@ const PRESETS = [
 ]
 
 export default function Challenge() {
-  const { challenge, balance, startChallenge, endChallenge, trades } = useStore()
+  const { challenge, balance, startChallenge, endChallenge, clearChallenge, trades, pendingOrders } = useStore()
   const toast = useToast()
   const [picked, setPicked] = useState(PRESETS[0].id)
 
@@ -118,7 +118,7 @@ export default function Challenge() {
           </button>
           <button
             className="btn-ghost flex-1 !text-down"
-            onClick={() => confirm('Give up this challenge?') && endChallenge('failed')}
+            onClick={() => done ? clearChallenge() : (confirm('Give up this challenge?') && endChallenge('failed'))}
           >
             {done ? 'Clear' : 'Give up'}
           </button>
@@ -164,9 +164,11 @@ export default function Challenge() {
         </div>
       </Section>
 
+      {(trades.some(t => t.status === 'open') || pendingOrders.length > 0) && <Banner tone="warn">Close existing positions and cancel pending orders before starting a new challenge.</Banner>}
       <Field label="Starting balance will be reset to the challenge amount">
         <button
           className="btn-primary w-full"
+          disabled={trades.some(t => t.status === 'open') || pendingOrders.length > 0}
           onClick={() => startChallenge({ id: p.id, name: p.name, startCapital: p.startCapital, targetCapital: p.targetCapital, days: p.days, maxRiskPct: p.maxRiskPct })}
         >
           Start {p.name}

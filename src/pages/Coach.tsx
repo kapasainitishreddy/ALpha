@@ -1,3 +1,5 @@
+import { CURRICULUM } from '@/data/curriculum'
+import { useTranslation } from '@/lib/i18n'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Banner } from '@/components/common'
@@ -16,10 +18,11 @@ const SUGGESTIONS = [
 ]
 
 export default function Coach() {
+  const { language } = useTranslation()
   const fatherMode = useStore((s) => s.fatherMode)
   const llm = useStore((s) => s.llm)
   const [msgs, setMsgs] = useState<Msg[]>([
-    { from: 'coach', text: 'Namaste. Ask me about trading, strategy, risk, or this app, in English or Telugu. I only help with those topics.' },
+    { from: 'coach', text: 'Namaste. Ask me about trading, strategy, risk, or this app, in English, Telugu or Hindi. I only help with those topics.' },
   ])
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
@@ -29,9 +32,10 @@ export default function Coach() {
     setInput('')
     setMsgs((m) => [...m, { from: 'you', text: q }])
     setBusy(true)
+    try {
     const reply = await askCoachLLM(q, llm, fatherMode)
     setMsgs((m) => [...m, { from: 'coach', text: reply.text, engine: reply.engine, refused: reply.source === 'refusal' }])
-    setBusy(false)
+    } finally { setBusy(false) }
   }
 
   return (
@@ -39,7 +43,7 @@ export default function Coach() {
       <Banner>
         {llm.enabled
           ? 'AI coach is on. Falls back to the built-in coach if the provider is unreachable.'
-          : 'Built-in coach (offline, free). Add an AI API key in AI Settings for smarter answers, including Telugu.'}
+          : 'Built-in multilingual coach (offline). Optional model calls depend on your provider and may cost money.'}
       </Banner>
 
       <div className="space-y-3">
@@ -63,7 +67,7 @@ export default function Coach() {
       </div>
 
       <div className="flex flex-wrap gap-2">
-        {SUGGESTIONS.map((s) => (
+        {(language === 'en' ? SUGGESTIONS : CURRICULUM.slice(0,5).map(l => l.question[language])).map((s) => (
           <button key={s} className="chip hover:border-accent" disabled={busy} onClick={() => send(s)}>{s}</button>
         ))}
       </div>
@@ -71,7 +75,7 @@ export default function Coach() {
       <div className="flex gap-2 sticky bottom-20">
         <input
           className="input"
-          placeholder="Ask in English or Telugu..."
+          placeholder="Ask in English, Telugu or Hindi..."
           value={input}
           disabled={busy}
           onChange={(e) => setInput(e.target.value)}

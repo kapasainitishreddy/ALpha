@@ -1,0 +1,5 @@
+torch>=2.4,<3
+transformers>=4.56,<5
+peft>=0.17,<1
+datasets>=4,<5
+trl>=0.23,<0.24

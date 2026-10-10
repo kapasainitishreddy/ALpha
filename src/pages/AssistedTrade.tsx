@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { ShieldAlert, Sparkles } from 'lucide-react'
 import { CandleChart } from '@/components/CandleChart'
 import { Banner, Section, Stat } from '@/components/common'
@@ -11,16 +12,20 @@ import { inr } from '@/lib/format'
 import { useStore } from '@/store/useStore'
 
 export default function AssistedTrade() {
-  const [symbol, setSymbol] = useState('INFY')
-  const [event, setEvent] = useState('it-rally')
-  const [seed, setSeed] = useState(0)
+  const [params] = useSearchParams()
+  const [symbol, setSymbol] = useState(params.get('symbol') ?? 'INFY')
+  const [event, setEvent] = useState(params.get('event') ?? 'it-rally')
+  const [seed, setSeed] = useState(Number(params.get('seed') ?? 0) || 0)
   const [saved, setSaved] = useState(false)
   const s = useSession(symbol, event, 'assisted', seed)
+  useEffect(() => { setSaved(false) }, [symbol, event, seed, s.closedTrades.length])
   const start = useStore((st) => st.balance)
   const llm = useStore((st) => st.llm)
   const [aiDebates, setAiDebates] = useState<Record<string, AiDebate | 'loading' | 'failed'>>({})
 
-  const candidates = useMemo(() => scanCandidates(s.session.candles, s.idx), [s.session, s.idx])
+  const custom = useStore(st => st.customStrategies)
+  const [rejected, setRejected] = useState<string[]>([])
+  const candidates = useMemo(() => scanCandidates(s.session.candles, s.idx).filter(c => !rejected.includes(`${s.idx}:${c.signal.strategyId}`)), [s.session, s.idx, custom, rejected])
 
   const runAiDebate = async (i: number) => {
     const c = candidates[i]
@@ -112,7 +117,7 @@ export default function AssistedTrade() {
             <div className="text-xs text-accent">Coach: {c.father}</div>
             <div className="flex gap-2">
               <button className="btn-up flex-1" onClick={() => approve(i)}>Approve</button>
-              <button className="btn-ghost flex-1">Reject</button>
+              <button className="btn-ghost flex-1" onClick={() => setRejected(r => [...r, `${s.idx}:${c.signal.strategyId}`])}>Reject</button>
             </div>
           </div>
         ))}
@@ -131,7 +136,7 @@ export default function AssistedTrade() {
 
       {s.closedTrades.length > 0 && (
         <Section title="Closed" right={
-          <button className="chip" disabled={saved} onClick={() => { finishSession('assisted', s.closedTrades, start - s.sessionPnl); setSaved(true) }}>
+          <button className="chip" disabled={saved} onClick={() => { finishSession('assisted', s.closedTrades, s.startBalance); setSaved(true) }}>
             {saved ? 'Saved' : 'Save to journal'}
           </button>
         }>

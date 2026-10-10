@@ -8,7 +8,7 @@ import { pickEvent } from '@/engines/mockMarketEngine'
 import { TRADING_LESSONS } from '@/data/tradingLessons'
 
 export default function FatherMode() {
-  const { setFatherMode, fatherMode, balance, resetDay } = useStore()
+  const { setFatherMode, fatherMode, balance, stopToday } = useStore()
   useEffect(() => { setFatherMode(true) }, [setFatherMode])
 
   // Deterministic "daily" lesson + market note (seeded by date).
@@ -45,7 +45,7 @@ export default function FatherMode() {
         <Link to="/compound" className="btn-ghost flex items-center justify-center gap-2">
           <Target size={20} /> ₹500 Challenge start cheyyi
         </Link>
-        <button className="btn-down flex items-center justify-center gap-2" onClick={resetDay}>
+        <button className="btn-down flex items-center justify-center gap-2" onClick={stopToday}>
           <OctagonX size={20} /> Ee roju aapedham (Stop Today)
         </button>
       </div>

@@ -1,3 +1,7 @@
+import { localId } from '@/lib/id'
+import { useStore } from '@/store/useStore'
+import { accountRisk, reservedCapital, exitReference } from '@/engines/paperExecution'
+import { openTrade } from '@/engines/tradeEngine'
 import { useState } from 'react'
 import { Banner, Field, Section, Stat } from '@/components/common'
 import { ClosedList, SymbolEventPicker } from '@/components/session'
@@ -5,7 +9,7 @@ import { CandleChart } from '@/components/CandleChart'
 import { generateSession } from '@/engines/mockMarketEngine'
 import { scanCandidates } from '@/engines/assistedEngine'
 import { evaluateRisk } from '@/engines/riskGuardEngine'
-import { closeTrade, feeFor, fillPrice, hitStopOrTarget } from '@/engines/tradeEngine'
+import { closeTrade, fillPrice } from '@/engines/tradeEngine'
 import { finishSession } from '@/lib/finish'
 import { inr, pnlColor } from '@/lib/format'
 import { RISK_LIMITS } from '@/data/riskRules'
@@ -18,30 +22,37 @@ export default function AutoTrade() {
   const [capital, setCapital] = useState(1000)
   const [risk, setRisk] = useState<RiskLevel>('low')
   const [saved, setSaved] = useState(false)
-  const [result, setResult] = useState<{ closed: Trade[]; pnl: number; stopped?: string; visible: ReturnType<typeof generateSession>['candles'] } | null>(null)
+  const [result, setResult] = useState<{ closed: Trade[]; pnl: number; startBalance: number; stopped?: string; visible: ReturnType<typeof generateSession>['candles'] } | null>(null)
 
   const run = () => {
+    const account = useStore.getState()
+    account.ensureDay()
+    const budget = Math.min(capital, Math.max(0, account.balance - reservedCapital()))
+    if (!Number.isFinite(budget) || budget <= 0) { setResult({ closed: [], pnl: 0, startBalance: 0, stopped: 'No available paper capital.', visible: [] }); return }
+    const runId = `auto:${localId()}`
+
     const session = generateSession(symbol, event, 120)
     const { candles } = session
     const closed: Trade[] = []
     let open: Trade | null = null
     let dailyPnl = 0
-    let consecutiveLosses = 0
     let stopped: string | undefined
     const sizeFactor = risk === 'low' ? 0.03 : risk === 'medium' ? 0.05 : 0.07
 
+    let lastIdx = 20
     for (let i = 20; i < candles.length; i++) {
+      lastIdx = i
       const price = candles[i].close
-      if (dailyPnl <= -RISK_LIMITS.dailyLossFraction * capital) { stopped = 'Daily loss limit reached, auto stopped.'; break }
-      if (dailyPnl >= RISK_LIMITS.targetProfitFraction * capital) { stopped = 'Daily target reached, auto stopped.'; break }
+      if (dailyPnl <= -RISK_LIMITS.dailyLossFraction * budget) { stopped = 'Daily loss limit reached, auto stopped.'; break }
+      if (dailyPnl >= RISK_LIMITS.targetProfitFraction * budget) { stopped = 'Daily target reached, auto stopped.'; break }
 
       if (open) {
-        const hit = hitStopOrTarget(open, price)
-        if (hit) {
-          const c = closeTrade(open, hit === 'stop' ? open.stopLoss! : open.target!)
+        const ref = exitReference(open, candles[i])
+        if (ref !== null) {
+          const c = closeTrade(open, ref)
+          useStore.getState().settleTrade(c)
           const p = c.realizedPnl ?? 0
           dailyPnl += p
-          consecutiveLosses = p < 0 ? consecutiveLosses + 1 : 0
           closed.push(c)
           open = null
         }
@@ -49,28 +60,28 @@ export default function AutoTrade() {
       }
       const cand = scanCandidates(candles, i, 1)[0]
       if (!cand) continue
-      const qty = Math.max(1, Math.floor((capital * sizeFactor) / price))
+      const qty = symbol.endsWith('USDT') ? budget * sizeFactor / price : Math.floor((budget * sizeFactor) / price)
       const decision = evaluateRisk({
-        mode: 'auto', balance: capital, tradeValue: qty * price, entry: price, side: cand.signal.action as 'buy' | 'sell',
+        ...accountRisk('auto'), tradeValue: qty * price * 1.0005, entry: fillPrice(price, cand.signal.action as 'buy' | 'sell'), side: cand.signal.action as 'buy' | 'sell',
         stopLoss: cand.signal.stopLoss, target: cand.signal.target, marketMood: session.event.mood,
-        consecutiveLosses, dailyPnl, tradesToday: closed.length,
+        agentAllocation: budget,
       })
       if (!decision.allow) continue
-      const entry = fillPrice(price, cand.signal.action as 'buy' | 'sell')
-      open = {
-        id: `auto${i}`, symbol, side: cand.signal.action as 'buy' | 'sell', qty, entryPrice: entry,
-        stopLoss: cand.signal.stopLoss, target: cand.signal.target, status: 'open', openedAt: i,
-        fees: feeFor(entry * qty), strategyTag: cand.signal.strategyId, mode: 'auto',
-      }
+      open = { ...openTrade({ symbol, side: cand.signal.action as 'buy' | 'sell', type: 'market', qty,
+        stopLoss: cand.signal.stopLoss, target: cand.signal.target, strategyTag: cand.signal.strategyId }, price, 'auto'), sessionId: runId }
+      useStore.getState().addTrade(open)
+
     }
-    if (open) { const c = closeTrade(open, candles[candles.length - 1].close); dailyPnl += c.realizedPnl ?? 0; closed.push(c) }
-    setResult({ closed, pnl: dailyPnl, stopped, visible: candles })
+    if (open) { const c = closeTrade(open, candles[lastIdx].close); useStore.getState().settleTrade(c); dailyPnl += c.realizedPnl ?? 0; closed.push(c) }
+    if (!closed.length && !stopped) stopped = 'No affordable qualifying setup passed the risk checks. Try a suitable instrument or budget; do not increase risk to force trades.'
+    setResult({ closed, pnl: dailyPnl, startBalance: budget, stopped, visible: candles.slice(0, lastIdx + 1) })
     setSaved(false)
   }
 
   return (
     <div className="space-y-6">
       <Banner tone="warn">AI trades <b>fake money only</b>. Real-money auto-trading is disabled. Risk Guard can stop it any time.</Banner>
+      <Banner>Each run uses available capital and updates your paper account immediately. Save adds a journal, not a second credit.</Banner>
       <SymbolEventPicker symbol={symbol} event={event} onSymbol={setSymbol} onEvent={setEvent} />
 
       <div className="grid grid-cols-2 gap-3">
@@ -95,7 +106,7 @@ export default function AutoTrade() {
           </div>
           {result.stopped && <Banner tone="warn">{result.stopped}</Banner>}
           <Section title="Trades" right={
-            <button className="chip" disabled={saved} onClick={() => { finishSession('auto', result.closed, capital); setSaved(true) }}>
+            <button className="chip" disabled={saved} onClick={() => { finishSession('auto', result.closed, result.startBalance); setSaved(true) }}>
               {saved ? 'Saved' : 'Save to journal'}
             </button>
           }>

@@ -1,7 +1,10 @@
+import { Link } from 'react-router-dom'
 import { useState } from 'react'
 import { Banner, Section } from '@/components/common'
 import { STRATEGY_DOCS, type StrategyDoc } from '@/data/strategyDocs'
 
+const EXPERIMENTS: Record<string,string> = { 'pairs-trading':'pairs', grid:'grid', 'market-making':'market-making', arbitrage:'arbitrage', 'portfolio-alloc':'allocation', 'rl-experiment':'q-learning' }
+const CONCEPTS = new Set([...Object.keys(EXPERIMENTS), 'news-sentiment', 'tech-sentiment-score', 'multi-agent-debate'])
 const CATS: { id: StrategyDoc['category']; label: string }[] = [
   { id: 'beginner', label: 'Beginner' },
   { id: 'quant', label: 'Quant / Bot' },
@@ -31,9 +34,11 @@ export default function StrategyLab() {
                   <span className="chip">{d.type}</span>
                 </div>
                 <div className="text-xs text-muted mt-1">{d.beginner}</div>
+                <div className="text-xs text-accent mt-1">{CONCEPTS.has(d.id) ? 'Concept: requires data beyond a single candle series' : 'Rule engine implemented; no proven live edge'}</div>
               </button>
               {open === d.id && (
                 <div className="mt-3 space-y-1 text-sm border-t border-edge pt-3">
+                  <Link className="text-accent underline block" to={EXPERIMENTS[d.id] ? `/models?kind=${EXPERIMENTS[d.id]}` : d.id === 'multi-agent-debate' ? '/assisted' : CONCEPTS.has(d.id) ? '/research' : '/backtest'}>Open the matching practice tool →</Link>
                   <Row k="Best market" v={d.bestMarket} />
                   <Row k="Bad market" v={d.badMarket} />
                   <Row k="Entry" v={d.entry} />

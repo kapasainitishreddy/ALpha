@@ -22,8 +22,8 @@ export default function Watchlist() {
       if (cancelled) return
       const gotCrypto = c.status === 'fulfilled'
       const gotIndia = i.status === 'fulfilled' && Object.keys(i.value).length > 0
-      if (gotCrypto) setCrypto(c.value)
-      if (gotIndia) setIndia(i.value)
+      setCrypto(gotCrypto ? c.value : {})
+      setIndia(i.status === 'fulfilled' ? i.value : {})
       setStatus(gotCrypto && gotIndia ? 'live' : gotCrypto || gotIndia ? 'partial' : 'offline')
     })
     return () => { cancelled = true }
@@ -33,7 +33,7 @@ export default function Watchlist() {
 
   const rows = MOCK_SYMBOLS.map((s) => {
     const c = crypto[s.symbol]
-    if (c) return { ...s, last: c.price, changePct: c.changePct, tag: 'LIVE' as const, note: '24h' }
+    if (c) return { ...s, last: c.price, changePct: c.changePct, tag: 'QUOTE' as const, note: c.quotedAt ? `INR spot · ${new Date(c.quotedAt * 1000).toLocaleTimeString()}` : 'INR spot · time unknown' }
 
     const i = india[s.symbol]
     if (i) {
@@ -41,8 +41,8 @@ export default function Watchlist() {
         ...s,
         last: i.price,
         changePct: i.changePct,
-        tag: open ? ('LIVE' as const) : ('CLOSE' as const),
-        note: open ? 'NSE' : 'last close',
+        tag: open ? ('QUOTE' as const) : ('CLOSE' as const),
+        note: i.quotedAt ? `NSE · ${new Date(i.quotedAt * 1000).toLocaleString()}` : 'source time unknown',
       }
     }
 
@@ -61,9 +61,9 @@ export default function Watchlist() {
           <>Live feeds unreachable — everything below is simulated.</>
         ) : (
           <>
-            Indian stocks are <b>real NSE prices</b>{open ? '' : ' (last close — market shut)'}; crypto is{' '}
-            <b>live</b> from CoinGecko. Prices can lag by a few minutes. You can practise against these,
-            but every trade is still mock money.
+            Available quotes come from Yahoo Finance and CoinGecko and may be delayed.
+            Each row identifies a quote, last close or simulated fallback. A quote is not a live tick guarantee.
+
           </>
         )}
       </Banner>
@@ -75,7 +75,7 @@ export default function Watchlist() {
               <div className="font-semibold flex items-center gap-2">
                 {r.symbol}
                 <span className={`text-[9px] px-1.5 py-0.5 rounded ${
-                  r.tag === 'LIVE' ? 'bg-up/15 text-up'
+                  r.tag === 'QUOTE' ? 'bg-up/15 text-up'
                     : r.tag === 'CLOSE' ? 'bg-warn/15 text-warn'
                       : 'bg-panel2 text-muted'
                 }`}>

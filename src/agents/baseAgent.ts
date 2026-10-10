@@ -17,6 +17,7 @@ export function agentDecide(
   candles: Candle[],
   idx: number,
   ctx: Omit<RiskContext, 'tradeValue' | 'entry' | 'side' | 'stopLoss' | 'target' | 'strategyId' | 'agentAllocation'>,
+  fractional = false,
 ): AgentDecision {
   const signal = evaluateStrategy(config.strategyId, candles, idx)
   if (signal.action === 'hold' || signal.confidence < 0.5) {
@@ -25,7 +26,7 @@ export function agentDecide(
   const price = signal.entry
   // Position size MUST stay under RISK_LIMITS.maxTradeValueFraction (0.4) or the Risk Guard
   // blocks every agent trade and the swarm never does anything. 0.3 leaves rounding margin.
-  const qty = Math.max(1, Math.floor((config.allocation * 0.3) / price))
+  const qty = fractional ? config.allocation * 0.3 / price : Math.floor((config.allocation * 0.3) / price)
   const value = qty * price
   const risk = evaluateRisk({
     ...ctx,

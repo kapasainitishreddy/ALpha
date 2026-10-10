@@ -34,6 +34,7 @@ export default function Home() {
 
   return (
     <div className="space-y-6">
+      <Link to="/learn" className="btn-primary block text-center">Learn trading · తెలుగు · हिन्दी</Link><div className="flex gap-3"><Link to="/replay" className="btn-ghost flex-1 text-center">Historical replay</Link><Link to="/portfolio" className="btn-ghost flex-1 text-center">Paper portfolio</Link></div>
       <Banner>{DISCLAIMERS.general}</Banner>
 
       <div className="card">

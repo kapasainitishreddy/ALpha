@@ -8,6 +8,12 @@ import { Banner, Section } from '@/components/common'
 import { useStore } from '@/store/useStore'
 
 const LINKS = [
+  { to: '/learn', Icon: BookOpen, label: 'Learn trading · English / తెలుగు / हिन्दी' },
+  { to: '/research', Icon: Eye, label: 'Research desk · sources and thesis' },
+  { to: '/portfolio', Icon: LineChart, label: 'Paper portfolio & backup' },
+  { to: '/replay', Icon: Clapperboard, label: 'Historical / CSV replay' },
+  { to: '/models', Icon: FlaskConical, label: 'Model experiments' },
+  { to: '/derivatives', Icon: Layers, label: 'Futures & options spread practice' },
   { to: '/live', Icon: Radio, label: 'Live Practice — real prices' },
   { to: '/risk', Icon: Calculator, label: 'Risk Tools — size, stop, R:R' },
   { to: '/builder', Icon: Wand2, label: 'Strategy Builder — no code' },
@@ -53,7 +59,7 @@ export default function More() {
 
       <Section title="Session">
         <div className="flex gap-3">
-          <button className="btn-ghost flex-1" onClick={resetDay}>Reset day counters</button>
+          <button className="btn-ghost flex-1" onClick={resetDay}>Check day rollover</button>
           <button className="btn-ghost flex-1 !text-down" onClick={() => confirm('Reset all mock data?') && resetAll()}>
             Reset all mock data
           </button>

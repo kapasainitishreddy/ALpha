@@ -1,3 +1,5 @@
+import { CURRICULUM } from '@/data/curriculum'
+import type { Language } from '@/lib/i18n'
 import { DISCLAIMERS } from '@/data/disclaimers'
 import { retrieve } from '@/models/localKnowledgeBase'
 import { isOnTopic, violatesGuardrail } from '@/models/strategyOnlyGuardrail'
@@ -9,7 +11,7 @@ export interface CoachReply {
 }
 
 // 3-layer coach. Works fully offline with $0 cost. Layer 3 (LLM) is optional and not wired by default.
-export function askCoach(question: string, fatherMode = false): CoachReply {
+export function askCoach(question: string, fatherMode = false, language: Language = 'en'): CoachReply {
   const q = question.trim()
   if (!q) return { text: 'Ask me about trading, strategy, risk, or this app.', source: 'fallback' }
 
@@ -18,6 +20,22 @@ export function askCoach(question: string, fatherMode = false): CoachReply {
     return { text: DISCLAIMERS.coachRefusal, source: 'refusal' }
   }
 
+  const replyLanguage: Language = /[ఀ-౿]/.test(q) ? 'te' : /[ऀ-ॿ]/.test(q) ? 'hi' : language
+  const aliases: Record<string, string[]> = {
+    ownership: ['share', 'stock', 'షేర్', 'शेयर'], orders: ['order', 'limit', 'లిమిట్', 'आर्डर', 'ऑर्डर'],
+    risk: ['position size', 'stop loss', 'risk', 'రిస్క్', 'స్టాప్', 'जोखिम', 'स्टॉप', 'पूंजी'],
+    expectancy: ['win rate', 'expectancy', 'విన్', 'जीत'], candles: ['candle', 'volume', 'క్యాండిల్', 'కैंडल'],
+    trend: ['ema', 'trend', 'ట్రెండ్', 'ट्रेंड'], rsi: ['rsi', 'mean reversion'], breakouts: ['breakout', 'vwap'],
+    fundamentals: ['valuation', 'fundamental', 'earnings', 'p/e', 'విలువ', 'मूल्यांकन'], portfolio: ['portfolio', 'allocation', 'diversif'],
+    shorts: ['short', 'leverage', 'షార్ట్', 'शॉर्ट'], futures: ['future', 'margin', 'ఫ్యూచర్', 'फ्यूचर', 'मार्जिन'],
+    options: ['option', 'greek', 'theta', 'ఆప్షన్', 'ऑप्शन'], spreads: ['straddle', 'condor', 'spread'], backtesting: ['backtest', 'lookahead'],
+    pairs: ['pair', 'cointegration'], microstructure: ['grid', 'market making'], arbitrage: ['arbitrage'], ml: ['machine learning', 'regression', 'overfit'],
+    rl: ['reinforcement', 'q-learning'], sentiment: ['sentiment', 'news'], research: ['research', 'screener'], psychology: ['journal', 'drawdown', 'emotion'], reality: ['paper', 'withdraw'],
+  }
+  const match = CURRICULUM.map(l => ({lesson:l, score: (aliases[l.id] ?? []).reduce((score, k) => q.toLowerCase().includes(k) ? score + k.length : score, 0)})).sort((a,b) => b.score-a.score)[0]
+  if (match?.score > 0 && (replyLanguage !== 'en' || !retrieve(q))) {
+    return { text: `${match.lesson.title[replyLanguage]}: ${match.lesson.body[replyLanguage]}\n\n${match.lesson.source}`, source: 'knowledge-base' }
+  }
   // Layer 2: knowledge base retrieval.
   const hit = retrieve(q)
   if (hit) {

@@ -53,6 +53,7 @@ export function closeTrade(trade: Trade, refPrice: number): Trade {
     exitPrice: exit,
     status: 'closed',
     closedAt: Date.now(),
+    closeSequence: ++seq,
     fees: trade.fees + exitFee,
     realizedPnl: realized,
   }

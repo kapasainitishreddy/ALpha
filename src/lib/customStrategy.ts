@@ -88,8 +88,8 @@ function readIndicators(candles: Candle[], idx: number): Record<IndicatorId, num
   const price = candles[idx].close
   const win = candles.slice(Math.max(0, idx - 20), idx)
   const avgVol = win.length ? win.reduce((s, x) => s + x.volume, 0) / win.length : candles[idx].volume
-  const hi = Math.max(...c.slice(Math.max(0, idx - 20), idx), price)
-  const lo = Math.min(...c.slice(Math.max(0, idx - 20), idx), price)
+  const hi = Math.max(...win.map(x => x.high))
+  const lo = Math.min(...win.map(x => x.low))
   const e = ema(c, 20)[idx]
   const s = sma(c, 20)[idx]
   const prev3 = c[Math.max(0, idx - 3)]

@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { useState } from 'react'
 import { Copy, Newspaper, Plus, Trash2, Wand2 } from 'lucide-react'
 import { Banner, Empty, Field, Section } from '@/components/common'
@@ -18,19 +19,7 @@ const blank = (): CustomScenario => ({
 // Preview candles for whatever the sliders currently say. The news shock is applied on top of
 // the generated series so the user can see the exact bar where the headline lands.
 function preview(s: CustomScenario, symbol: string) {
-  const session = generateSession(symbol, 'normal-trend', 90, 3)
-  const ev = toEventDef(s)
-  const base = MOCK_SYMBOLS.find((m) => m.symbol === symbol)?.basePrice ?? 1000
-
-  let price = base * (1 + (ev.gap ?? 0))
-  return session.candles.map((c, i) => {
-    const noise = ((c.close - base) / base) * ev.volMultiplier
-    const shock = s.newsAt !== undefined && i === s.newsAt ? (s.newsImpact ?? 0) : 0
-    price = price * (1 + ev.drift + shock) + base * noise * 0.02
-    const close = Math.max(base * 0.4, price)
-    const wick = close * 0.004 * ev.volMultiplier
-    return { time: c.time, open: close - wick / 2, high: close + wick, low: close - wick, close, volume: c.volume }
-  })
+  return generateSession(symbol, s.id, 90, 0, s).candles
 }
 
 export default function ScenarioLab() {
@@ -100,7 +89,7 @@ export default function ScenarioLab() {
                       <Trash2 size={15} />
                     </button>
                   </div>
-                  <p className="text-xs text-muted mt-1 leading-relaxed">{describeScenario(s)}</p>
+                  <p className="text-xs text-muted mt-1 leading-relaxed">{describeScenario(s)}</p><Link to={`/manual?symbol=${symbol}&event=${s.id}&seed=0`} className="text-accent underline text-xs">Practise this saved market →</Link>
                 </div>
               ))}
             </div>

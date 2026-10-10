@@ -4,6 +4,9 @@ import { Banner, Empty, Field, Section, Stat } from '@/components/common'
 import { useToast } from '@/components/Toast'
 import { useStore } from '@/store/useStore'
 import { INDICATORS, describe, evaluateCustom, type CustomStrategy, type IndicatorId, type Rule } from '@/lib/customStrategy'
+import { closeTrade, openTrade } from '@/engines/tradeEngine'
+import { exitReference } from '@/engines/paperExecution'
+import type { Trade } from '@/types'
 import { generateSession } from '@/engines/mockMarketEngine'
 import { MARKET_EVENTS } from '@/data/marketEvents'
 import { pnlColor } from '@/lib/format'
@@ -38,28 +41,29 @@ function quickTest(strategy: CustomStrategy) {
 
   for (const ev of events) {
     const { candles } = generateSession('INFY', ev, 120, 7)
-    let open: { entry: number; stop: number; target: number; side: 'buy' | 'sell' } | null = null
+    let open: Trade | null = null
+    let balance = 10000
     for (let i = 20; i < candles.length; i++) {
       const price = candles[i].close
       if (open) {
-        const hitStop = open.side === 'buy' ? price <= open.stop : price >= open.stop
-        const hitTarget = open.side === 'buy' ? price >= open.target : price <= open.target
-        if (hitStop || hitTarget) {
-          const dir = open.side === 'buy' ? 1 : -1
-          const exit = hitStop ? open.stop : open.target
-          pnlPct += ((exit - open.entry) / open.entry) * 100 * dir
-          trades++
-          if (hitTarget) wins++
-          open = null
+        const ref = exitReference(open, candles[i])
+        if (ref !== null || i === candles.length - 1) {
+          const closed = closeTrade(open, ref ?? price)
+          const p = closed.realizedPnl ?? 0
+          balance += p; trades++; if (p > 0) wins++; open = null
         }
         continue
       }
       const sig = evaluateCustom(strategy, candles, i)
-      if (sig.action !== 'hold') open = { entry: sig.entry, stop: sig.stopLoss, target: sig.target, side: sig.action }
+      const qty = Math.floor(balance * .1 / price)
+      if (sig.action !== 'hold' && qty > 0 && i < candles.length - 1) open = openTrade({ symbol: 'INFY', side: sig.action, type: 'market', qty,
+        stopLoss: sig.stopLoss, target: sig.target, strategyTag: strategy.id }, price, 'backtest')
     }
+    pnlPct += (balance - 10000) / 10000 * 100
+
   }
 
-  return { trades, wins, pnlPct, winRate: trades ? (wins / trades) * 100 : 0, markets: events.length }
+  return { trades, wins, pnlPct: pnlPct / events.length, winRate: trades ? (wins / trades) * 100 : 0, markets: events.length }
 }
 
 export default function StrategyBuilder() {
@@ -267,7 +271,7 @@ export default function StrategyBuilder() {
               <div className="grid grid-cols-3 gap-3">
                 <Stat label="Trades" value={String(result.trades)} />
                 <Stat label="Win rate" value={`${result.winRate.toFixed(0)}%`} />
-                <Stat label="Total move" value={`${result.pnlPct >= 0 ? '+' : ''}${result.pnlPct.toFixed(1)}%`} tone={result.pnlPct} />
+                <Stat label="Mean return" value={`${result.pnlPct >= 0 ? '+' : ''}${result.pnlPct.toFixed(1)}%`} tone={result.pnlPct} />
               </div>
               <p className={`text-xs leading-relaxed ${pnlColor(result.pnlPct)}`}>
                 {result.pnlPct > 0
@@ -277,7 +281,7 @@ export default function StrategyBuilder() {
             </>
           )}
           <p className="text-[11px] text-muted">
-            Simulated candles, no fees or slippage. Real results would be worse.
+            Simulated candles with 0.03% per-side fees and 0.05% market slippage. Equal starting capital per market; mean account return, not a sum of price moves. Real execution can differ.
           </p>
         </Section>
       )}

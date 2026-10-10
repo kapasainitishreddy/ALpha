@@ -1,3 +1,4 @@
+import { useStore } from '@/store/useStore'
 import { useState } from 'react'
 import { Banner, Field, Section, Stat } from '@/components/common'
 import { Sparkline } from '@/components/Sparkline'
@@ -9,6 +10,7 @@ import { inr } from '@/lib/format'
 import type { BacktestResult } from '@/types'
 
 export default function BacktestLab() {
+  const { customStrategies, customScenarios } = useStore()
   const [strategy, setStrategy] = useState('ema-trend')
   const [symbol, setSymbol] = useState('INFY')
   const [event, setEvent] = useState('normal-trend')
@@ -20,6 +22,7 @@ export default function BacktestLab() {
       <div className="grid grid-cols-1 gap-3">
         <Field label="Strategy">
           <select className="input" value={strategy} onChange={(e) => setStrategy(e.target.value)}>
+            {customStrategies.map(d => <option key={d.id} value={d.id}>Custom: {d.name}</option>)}
             {STRATEGY_DOCS.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
           </select>
         </Field>
@@ -31,6 +34,7 @@ export default function BacktestLab() {
           </Field>
           <Field label="Scenario">
             <select className="input" value={event} onChange={(e) => setEvent(e.target.value)}>
+              {customScenarios.map(ev => <option key={ev.id} value={ev.id}>Custom: {ev.name}</option>)}
               {MARKET_EVENTS.map((ev) => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
             </select>
           </Field>

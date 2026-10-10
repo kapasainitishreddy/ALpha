@@ -13,7 +13,7 @@ export interface IndiaQuote {
 }
 
 // App symbol -> Yahoo ticker. ^ prefix = index, .NS suffix = NSE listing.
-const YAHOO_TICKERS: Record<string, string> = {
+export const YAHOO_TICKERS: Record<string, string> = {
   NIFTY50: '^NSEI',
   BANKNIFTY: '^NSEBANK',
   RELIANCE: 'RELIANCE.NS',
@@ -34,15 +34,13 @@ export function isLiveIndiaSymbol(sym: string): boolean {
 
 // Inside the Android APK the page is served from capacitor://localhost, so a relative
 // "/api/quote" resolves to the app bundle and 404s. Fall back to the deployed function there.
-const QUOTE_HOST = 'https://blackscythe-alpha.netlify.app'
-const quoteUrl = (q: string) =>
-  location.protocol.startsWith('http') ? `/api/quote?${q}` : `${QUOTE_HOST}/api/quote?${q}`
+const quoteUrl = (q: string) => `/api/quote?${q}`
 
 export async function fetchLiveIndia(symbols: string[] = LIVE_INDIA_SYMBOLS): Promise<Record<string, IndiaQuote>> {
   const wanted = symbols.filter(isLiveIndiaSymbol)
   if (!wanted.length) return {}
 
-  const res = await fetch(quoteUrl(`symbols=${wanted.map((s) => YAHOO_TICKERS[s]).join(',')}`))
+  const res = await fetch(quoteUrl(`symbols=${encodeURIComponent(wanted.map((s) => YAHOO_TICKERS[s]).join(','))}`), { signal: AbortSignal.timeout(15000) })
   if (!res.ok) throw new Error(`quote ${res.status}`)
   const { quotes } = (await res.json()) as { quotes: Record<string, IndiaQuote> }
 
@@ -50,7 +48,7 @@ export async function fetchLiveIndia(symbols: string[] = LIVE_INDIA_SYMBOLS): Pr
   const out: Record<string, IndiaQuote> = {}
   for (const sym of wanted) {
     const q = quotes[YAHOO_TICKERS[sym]]
-    if (q) out[sym] = q
+    if (q && Number.isFinite(q.price) && q.price > 0) out[sym] = q
   }
   return out
 }

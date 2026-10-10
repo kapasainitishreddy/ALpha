@@ -22,7 +22,7 @@ export async function chatComplete(messages: ChatMessage[], cfg: EndpointConfig,
       ...(cfg.apiKey ? { Authorization: `Bearer ${cfg.apiKey}` } : {}),
     },
     body: JSON.stringify({ model: cfg.model, messages, temperature: 0.3, stream: false }),
-    signal,
+    signal: signal ?? AbortSignal.timeout(20000),
   })
   if (!res.ok) {
     const body = await res.text().catch(() => '')

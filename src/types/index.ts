@@ -41,7 +41,7 @@ export interface MarketSession {
 }
 
 export type Side = 'buy' | 'sell'
-export type OrderType = 'market' | 'limit'
+export type OrderType = 'market' | 'limit' | 'stop'
 
 export interface OrderRequest {
   symbol: string
@@ -49,6 +49,7 @@ export interface OrderRequest {
   type: OrderType
   qty: number
   limitPrice?: number
+  triggerPrice?: number
   stopLoss?: number
   target?: number
   strategyTag?: string
@@ -69,10 +70,12 @@ export interface Trade {
   strategyTag?: string
   openedAt: number
   closedAt?: number
+  closeSequence?: number
   fees: number
   realizedPnl?: number
   agentId?: string
   mode: AppMode
+  sessionId?: string
 }
 
 export interface StrategySignal {
@@ -107,6 +110,12 @@ export interface RiskContext {
   dailyPnl: number
   tradesToday: number
   agentAllocation?: number // remaining allocation for an agent
+  fatherMode?: boolean
+  dayStartBalance?: number
+  stoppedToday?: boolean
+  reservedCapital?: number
+  maxRiskPct?: number
+  riskCapital?: number
   isRealAuto?: boolean
 }
 
@@ -214,4 +223,18 @@ export interface ComparisonReport {
   safestMode?: AppMode
   bestMode?: AppMode
   bestLearningPoint: string
+}
+
+export interface PendingOrder {
+  id: string
+  sessionId: string
+  order: OrderRequest
+  createdAt: number
+  mode: AppMode
+}
+export interface PracticeSession {
+  startBalance?: number
+  idx: number
+  candles?: Candle[]
+  source?: string
 }

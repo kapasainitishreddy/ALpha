@@ -149,9 +149,9 @@ export default function Options() {
         </div>
 
         <Banner tone={Math.abs(movePct) > 2 ? 'warn' : 'info'}>
-          You pay {inr(cost)} up front. You only start making money above {inr(q.breakeven)} — that is a{' '}
+          You pay {inr(cost)} up front. You only start making money {type === 'call' ? 'above' : 'below'} {inr(q.breakeven)} — that is a{' '}
           <b>{Math.abs(movePct).toFixed(2)}% move {type === 'call' ? 'up' : 'down'}</b> in {days} day
-          {days === 1 ? '' : 's'}, just to break even. Below that, you lose some or all of the premium.
+          {days === 1 ? '' : 's'}, just to break even. On the unprofitable side, you lose some or all of the premium.
         </Banner>
 
         <div className="card !p-3 flex gap-2">
@@ -166,8 +166,8 @@ export default function Options() {
 
       <Banner tone="lock">
         Educational calculator only. Uses one flat volatility input and a simplified model — real premiums
-        differ. No option is bought or sold here; this app cannot place any trade, real or mock, in options.
-        Learn position sizing in <Link to="/risk" className="underline">Risk Tools</Link> before going near these.
+        differ. No option is bought or sold on this calculator. Try virtual positions in the futures & options practice lab.
+        <Link to="/derivatives" className="underline">Open derivatives practice</Link>. Learn position sizing in <Link to="/risk" className="underline">Risk Tools</Link> before going near these.
       </Banner>
     </div>
   )

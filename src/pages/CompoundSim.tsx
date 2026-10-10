@@ -14,6 +14,7 @@ export default function CompoundSim() {
 
   return (
     <div className="space-y-5">
+      <Banner tone="warn">Fixed daily returns are hypothetical arithmetic, not expected investment performance. Even a positive average return can include large drawdowns.</Banner>
       <Banner tone="warn">A mock projection of compounding. Real markets can lose money, steady daily returns are not guaranteed.</Banner>
 
       <Field label="Challenge">

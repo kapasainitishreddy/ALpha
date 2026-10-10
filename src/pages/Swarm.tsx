@@ -1,3 +1,4 @@
+import { useStore } from '@/store/useStore'
 import { useState } from 'react'
 import { CheckCircle2, Info, MinusCircle, TriangleAlert } from 'lucide-react'
 import { Banner, Field, Section, Stat } from '@/components/common'
@@ -13,6 +14,7 @@ import { inr, pnlColor } from '@/lib/format'
 import type { SwarmResult } from '@/types'
 
 export default function Swarm() {
+  const customStrategies = useStore(s => s.customStrategies)
   const toast = useToast()
   const [symbol, setSymbol] = useState('INFY')
   const [event, setEvent] = useState('real-breakout')
@@ -20,7 +22,7 @@ export default function Swarm() {
   const [res, setRes] = useState<SwarmResult | null>(null)
   const [saved, setSaved] = useState(false)
 
-  const run = () => { setRes(runSwarm({ capital, symbol, eventId: event, specs: DEFAULT_SWARM })); setSaved(false) }
+  const run = () => { setRes(runSwarm({ capital, symbol, eventId: event, specs: [...DEFAULT_SWARM, ...customStrategies.map(s => ({ id: s.id, name: s.name, strategyId: s.id, riskLevel: 'low' as const }))], commitToAccount: true })); setSaved(false) }
 
   const ev = getEvent(event)
   const explain = res ? explainSwarm(res, ev) : null
@@ -33,6 +35,7 @@ export default function Swarm() {
         between them. The point is to see them disagree — not to find a winner.
       </Banner>
 
+      <Banner>Runs use available paper capital and settle into your account immediately. Custom saved strategies join the swarm.</Banner>
       <SymbolEventPicker symbol={symbol} event={event} onSymbol={setSymbol} onEvent={setEvent} />
       <Field label="Mock capital ₹">
         <input className="input" type="number" min={100} step={1000} value={capital} onChange={(e) => setCapital(Math.max(100, +e.target.value))} />
@@ -114,7 +117,7 @@ export default function Swarm() {
             className="btn-ghost w-full"
             disabled={saved}
             onClick={() => {
-              finishSession('swarm', res.agents.flatMap((a) => a.trades), capital)
+              finishSession('swarm', res.agents.flatMap((a) => a.trades), res.startingCapital)
               setSaved(true)
               toast('Saved to journal.')
             }}

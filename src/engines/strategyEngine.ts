@@ -1,4 +1,6 @@
 import type { Candle, StrategySignal } from '@/types'
+import { useStore } from '@/store/useStore'
+import { evaluateCustom } from '@/lib/customStrategy'
 import { atr, closes, ema, rsi, sma, vwap } from '@/lib/indicators'
 
 // Evaluate a strategy over a candle window ending at `idx`. Returns a signal (may be 'hold').
@@ -8,6 +10,8 @@ export function evaluateStrategy(
   candles: Candle[],
   idx: number,
 ): StrategySignal {
+  const custom = useStore.getState().customStrategies.find(s => s.id === strategyId)
+  if (custom) return evaluateCustom(custom, candles, idx)
   const price = candles[idx]?.close ?? candles[candles.length - 1].close
   const c = closes(candles)
   const hold = (reason: string): StrategySignal => ({
@@ -63,8 +67,16 @@ export function evaluateStrategy(
       if (price < e[idx] && !rising) return short(0.5, a, 2, 'Price below a falling EMA(20).')
       return hold('No clean EMA trend.')
     }
-    case 'breakout-volume':
     case 'volatility-breakout': {
+      const previous = candles.slice(idx - 20, idx)
+      const high = Math.max(...previous.map(c => c.high))
+      const low = Math.min(...previous.map(c => c.low))
+      const recentAtr = atr(candles, 14)[idx - 1] / price
+      if (price > high && a > recentAtr * 1.1) return long(.6, a * 1.5, 2, 'Upper range break with expanding ATR.')
+      if (price < low && a > recentAtr * 1.1) return short(.55, a * 1.5, 2, 'Lower range break with expanding ATR.')
+      return hold('No range break with volatility expansion.')
+    }
+    case 'breakout-volume': {
       const hi = Math.max(...c.slice(idx - 20, idx))
       const avgVol = candles.slice(idx - 20, idx).reduce((s, x) => s + x.volume, 0) / 20
       const volOk = candles[idx].volume > avgVol * 1.3
@@ -99,29 +111,25 @@ export function evaluateStrategy(
       if (candles[idx - 1].close > vw[idx - 1] && price < vw[idx]) return short(0.52, a, 2, 'Price lost VWAP.')
       return hold('No VWAP cross.')
     }
-    case 'momentum':
-    case 'news-sentiment':
-    case 'tech-sentiment-score':
-    case 'multi-agent-debate': {
+    case 'momentum': {
       const chg = (price - c[idx - 3]) / c[idx - 3]
       if (chg > 0.01) return long(0.55, a, 2, 'Positive momentum over last 3 bars.')
       if (chg < -0.01) return short(0.5, a, 2, 'Negative momentum over last 3 bars.')
       return hold('Flat momentum.')
     }
-    // Quant / experimental strategies: conservative range logic so they behave in the simulator.
+    case 'news-sentiment':
+    case 'tech-sentiment-score':
+    case 'multi-agent-debate':
     case 'pairs-trading':
     case 'grid':
     case 'market-making':
     case 'arbitrage':
     case 'portfolio-alloc':
     case 'rl-experiment':
+      return hold('Educational concept only: this candle-only engine cannot implement this model faithfully. Use Model Lab for an explicit experiment.')
     case 'risk-first-reject':
-    default: {
-      const m = sma(c, 20)[idx]
-      const dev = (price - m) / m
-      if (dev < -0.015) return long(0.5, a, 1.5, 'Below fair value (range logic).')
-      if (dev > 0.015) return short(0.45, a, 1.5, 'Above fair value (range logic).')
-      return hold('No edge this bar.')
-    }
+      return hold('Risk-first agent chooses to wait. No confirmed edge.')
+    default:
+      return hold('Unknown strategy.')
   }
 }

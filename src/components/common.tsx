@@ -1,3 +1,4 @@
+import { useTranslation } from '@/lib/i18n'
 import type { ReactNode } from 'react'
 import { DISCLAIMERS } from '@/data/disclaimers'
 import { pnlColor } from '@/lib/format'
@@ -11,10 +12,11 @@ export function MockBadge() {
 }
 
 export function Section({ title, children, right }: { title: string; children: ReactNode; right?: ReactNode }) {
+  const { t } = useTranslation()
   return (
     <section className="space-y-3">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-muted uppercase tracking-wide">{title}</h2>
+        <h2 className="text-sm font-semibold text-muted uppercase tracking-wide">{t(title)}</h2>
         {right}
       </div>
       {children}
@@ -23,9 +25,10 @@ export function Section({ title, children, right }: { title: string; children: R
 }
 
 export function Stat({ label, value, tone }: { label: string; value: string; tone?: number }) {
+  const { t } = useTranslation()
   return (
     <div className="card !p-3">
-      <div className="label">{label}</div>
+      <div className="label">{t(label)}</div>
       <div className={`text-lg font-bold ${tone !== undefined ? pnlColor(tone) : ''}`}>{value}</div>
     </div>
   )
@@ -56,9 +59,10 @@ export function Empty({ icon, title, body, action }: { icon?: ReactNode; title: 
 }
 
 export function Field({ label, children }: { label: string; children: ReactNode }) {
+  const { t } = useTranslation()
   return (
     <label className="block space-y-1">
-      <span className="label">{label}</span>
+      <span className="label">{t(label)}</span>
       {children}
     </label>
   )

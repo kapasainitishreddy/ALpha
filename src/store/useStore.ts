@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { AppMode, JournalEntry, ModeStat, Trade } from '@/types'
+import type { AppMode, JournalEntry, ModeStat, Trade, PendingOrder, PracticeSession } from '@/types'
 import type { LlmConfig } from '@/engines/llmCoach'
 import type { CustomStrategy } from '@/lib/customStrategy'
 import type { CustomScenario } from '@/lib/scenario'
@@ -58,6 +58,16 @@ export interface DailyResult {
 }
 
 interface State {
+  language: 'en' | 'te' | 'hi'
+  completedLessons: string[]
+  journaledTradeIds: string[]
+  orderEvents: Array<{ sessionId: string; symbol: string; message: string; at: number }>
+  logOrderEvent: (sessionId: string, symbol: string, message: string) => void
+  pendingOrders: PendingOrder[]
+  sessions: Record<string, PracticeSession>
+  dayKey: string
+  dayStartBalance: number
+  stoppedToday: boolean
   fatherMode: boolean
   balance: number // MOCK rupees
   startingBalance: number
@@ -79,6 +89,16 @@ interface State {
   dailyResults: DailyResult[]
   onboarded: boolean
 
+  setLanguage: (language: 'en' | 'te' | 'hi') => void
+  completeLesson: (id: string) => void
+  markJournaled: (ids: string[]) => void
+  setSession: (id: string, session: PracticeSession) => void
+  addPending: (order: PendingOrder) => void
+  removePending: (id: string) => void
+  settleTrade: (trade: Trade) => void
+  ensureDay: () => void
+  stopToday: () => void
+  clearChallenge: () => void
   setFatherMode: (v: boolean) => void
   setLlm: (patch: Partial<LlmConfig>) => void
   addTrade: (t: Trade) => void
@@ -108,7 +128,9 @@ const START = 10000
 
 export const useStore = create<State>()(
   persist(
-    (set) => ({
+    (set, get) => ({
+      orderEvents: [], language: 'en', completedLessons: [], journaledTradeIds: [], pendingOrders: [], sessions: {},
+      dayKey: todayKey(), dayStartBalance: START, stoppedToday: false,
       fatherMode: false,
       balance: START,
       startingBalance: START,
@@ -134,10 +156,32 @@ export const useStore = create<State>()(
       dailyResults: [],
       onboarded: false,
 
+      setLanguage: (language) => set({ language }),
+      completeLesson: (id) => set(s => ({ completedLessons: [...new Set([...s.completedLessons, id])] })),
+      markJournaled: (ids) => set(s => ({ journaledTradeIds: [...new Set([...s.journaledTradeIds, ...ids])] })),
+      setSession: (id, session) => set(s => ({ sessions: { ...s.sessions, [id]: session } })),
+      logOrderEvent: (sessionId, symbol, message) => set(s => ({ orderEvents: [{ sessionId, symbol, message, at: Date.now() }, ...s.orderEvents].slice(0,100) })),
+      addPending: (order) => set(s => ({ pendingOrders: [...s.pendingOrders, order] })),
+      removePending: (id) => set(s => ({ pendingOrders: s.pendingOrders.filter(o => o.id !== id) })),
+      settleTrade: (trade) => {
+        const old = get().trades.find(t => t.id === trade.id)
+        if (!old || old.status === 'closed' || trade.status !== 'closed' || !Number.isFinite(trade.realizedPnl)) return
+        get().ensureDay()
+        get().updateTrade(trade)
+        get().recordClose(trade.realizedPnl!)
+      },
+      ensureDay: () => set(s => {
+        const challenge = s.challenge?.status === 'active' && Date.now() >= s.challenge.startedAt + s.challenge.days * 86400000
+          ? { ...s.challenge, status: 'failed' as const } : s.challenge
+        return s.dayKey !== todayKey() ? { dayKey: todayKey(), dayStartBalance: s.balance, stoppedToday: false,
+          dailyPnl: 0, tradesToday: 0, consecutiveLosses: 0, challenge } : { challenge }
+      }),
+      stopToday: () => set(s => ({ stoppedToday: true, pendingOrders: [], orderEvents: [...s.pendingOrders.map(o => ({ sessionId: o.sessionId, symbol: o.order.symbol, message: 'Cancelled: trading paused for today.', at: Date.now() })), ...s.orderEvents].slice(0,100) })),
+      clearChallenge: () => set({ challenge: null }),
       setFatherMode: (v) => set({ fatherMode: v }),
       setOnboarded: (v) => set({ onboarded: v }),
       setLlm: (patch) => set((s) => ({ llm: { ...s.llm, ...patch } })),
-      addTrade: (t) => set((s) => ({ trades: [t, ...s.trades], tradesToday: s.tradesToday + 1 })),
+      addTrade: (t) => set((s) => ({ trades: s.trades.some(x => x.id === t.id) ? s.trades : [t, ...s.trades], tradesToday: s.tradesToday + (s.trades.some(x => x.id === t.id) ? 0 : 1) })),
       updateTrade: (t) => set((s) => ({ trades: s.trades.map((x) => (x.id === t.id ? t : x)) })),
       recordClose: (realized) =>
         set((s) => {
@@ -169,8 +213,11 @@ export const useStore = create<State>()(
       addJournal: (e) => set((s) => ({ journal: [e, ...s.journal].slice(0, 100) })),
       pushModeStat: (st) => set((s) => ({ modeStats: [...s.modeStats, st].slice(-50) })),
       setKey: (k, v) => set((s) => ({ apiKeys: { ...s.apiKeys, [k]: v } })),
-      startChallenge: (c) =>
+      startChallenge: (c) => {
+        if (get().trades.some(t => t.status === 'open') || get().pendingOrders.length) return
         set({
+          orderEvents: [], trades: [], pendingOrders: [], sessions: {}, journaledTradeIds: [],
+          dayKey: todayKey(), dayStartBalance: c.startCapital, stoppedToday: false,
           challenge: { ...c, startedAt: Date.now(), status: 'active' },
           // A challenge is a fresh run — it owns the balance for its duration.
           balance: c.startCapital,
@@ -178,7 +225,8 @@ export const useStore = create<State>()(
           consecutiveLosses: 0,
           dailyPnl: 0,
           tradesToday: 0,
-        }),
+        })
+      },
       endChallenge: (status) => set((s) => ({ challenge: s.challenge ? { ...s.challenge, status } : null })),
       saveStrategy: (st) =>
         set((s) => ({
@@ -204,9 +252,11 @@ export const useStore = create<State>()(
         }),
       recordDaily: (r) =>
         set((s) => ({ dailyResults: [...s.dailyResults.filter((x) => x.date !== r.date), r].slice(-90) })),
-      resetDay: () => set({ consecutiveLosses: 0, dailyPnl: 0, tradesToday: 0 }),
+      resetDay: () => get().ensureDay(),
       resetAll: () =>
         set({
+          orderEvents: [], pendingOrders: [], sessions: {}, journaledTradeIds: [], completedLessons: [],
+          dayKey: todayKey(), dayStartBalance: START, stoppedToday: false,
           balance: START,
           startingBalance: START,
           trades: [],
@@ -223,7 +273,17 @@ export const useStore = create<State>()(
           dailyResults: [],
         }),
     }),
-    { name: 'blackscythe-alpha' },
+    { name: 'blackscythe-alpha', version: 2,
+      partialize: (s): Partial<State> => ({ ...s, apiKeys: {}, llm: { ...s.llm, apiKey: '' } }),
+      migrate: (saved): Partial<State> => {
+        const state = (saved && typeof saved === 'object' ? saved : {}) as Partial<State>
+        return { ...state, apiKeys: {}, ...(state.llm ? { llm: { ...state.llm, apiKey: '' } } : {}),
+          dayKey: todayKey(), dayStartBalance: state.balance ?? START,
+          sessions: {}, pendingOrders: [], journaledTradeIds: [], stoppedToday: false,
+          // Legacy interactive positions cannot be safely priced without their original session.
+          trades: (state.trades ?? []).filter(t => t.status === 'closed') }
+      },
+    },
   ),
 )
 

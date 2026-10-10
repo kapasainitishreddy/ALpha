@@ -1,3 +1,5 @@
+import { useStore } from '@/store/useStore'
+import { LANGUAGES } from '@/lib/i18n'
 import { askCoach, type CoachReply } from './aiCoachEngine'
 import { FINANCE_TUTOR_SYSTEM_PROMPT } from '@/models/financeTutorSystemPrompt'
 import { isOnTopic, violatesGuardrail } from '@/models/strategyOnlyGuardrail'
@@ -37,7 +39,8 @@ export async function askCoachLLM(
   cfg: LlmConfig,
   fatherMode = false,
 ): Promise<LlmCoachReply> {
-  const ruleReply = askCoach(question, fatherMode)
+  const state = useStore.getState()
+  const ruleReply = askCoach(question, fatherMode, state.language)
 
   if (!cfg.enabled || !cfg.baseUrl || !cfg.model) {
     return { ...ruleReply, engine: 'rules' }
@@ -58,7 +61,7 @@ export async function askCoachLLM(
     {
       role: 'system',
       content:
-        FINANCE_TUTOR_SYSTEM_PROMPT +
+        FINANCE_TUTOR_SYSTEM_PROMPT + `\nAnswer in ${LANGUAGES[state.language]}. Never invent market quotes, news or source links. Current PAPER account: balance INR ${state.balance.toFixed(2)}, daily P/L ${state.dailyPnl.toFixed(2)}, trades today ${state.tradesToday}, paused ${state.stoppedToday}. Teach concepts; do not select real stocks to buy.` +
         (fatherMode ? '\nFather Mode is ON: answer in very simple Telugu-English (Tenglish), short sentences.' : ''),
     },
     // one-shot refusal anchor

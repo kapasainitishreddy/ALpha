@@ -1,6 +1,8 @@
 import type { Candle, MarketEventDef, MarketSession } from '@/types'
 import { getSymbol } from '@/data/mockSymbols'
 import { getEvent, MARKET_EVENTS } from '@/data/marketEvents'
+import { useStore } from '@/store/useStore'
+import { toEventDef, type CustomScenario } from '@/lib/scenario'
 import { gaussian, hashSeed, mulberry32 } from '@/lib/rng'
 
 // Generate a deterministic candle series for a symbol under a given market event.
@@ -10,10 +12,14 @@ export function generateSession(
   eventId: string,
   candleCount = 60,
   seedOffset = 0,
+  scenario?: CustomScenario,
 ): MarketSession {
   const sym = getSymbol(symbol)
-  const event = getEvent(eventId)
-  const rng = mulberry32(hashSeed(`${symbol}|${eventId}|${seedOffset}`))
+  const supplied = scenario ?? useStore.getState().customScenarios.find(s => s.id === eventId)
+  const custom = supplied ? { ...supplied, drift: Math.round(supplied.drift * 1e5) / 1e5, volMultiplier: Math.round(supplied.volMultiplier * 100) / 100, gap: Math.round(supplied.gap * 1e4) / 1e4, newsImpact: Math.round((supplied.newsImpact ?? 0) * 1e4) / 1e4 } : undefined
+  const event = custom ? toEventDef(custom) : getEvent(eventId)
+  const scenarioSeed = custom ? `${custom.drift}|${custom.volMultiplier}|${custom.gap}|${custom.newsAt ?? 0}|${custom.newsImpact}` : eventId
+  const rng = mulberry32(hashSeed(`${symbol}|${scenarioSeed}|${seedOffset}`))
 
   const candles: Candle[] = []
   let price = sym.basePrice
@@ -24,9 +30,9 @@ export function generateSession(
 
   for (let i = 0; i < candleCount; i++) {
     const shock = gaussian(rng) * baseVol
-    const move = event.drift + shock
+    const move = event.drift + shock + (custom?.newsAt === i ? custom.newsImpact ?? 0 : 0)
     const open = price
-    const close = open * (1 + move)
+    const close = Math.max(0.01, open * (1 + move))
     const wick = Math.abs(gaussian(rng)) * baseVol * 0.5
     const high = Math.max(open, close) * (1 + wick)
     const low = Math.min(open, close) * (1 - wick)

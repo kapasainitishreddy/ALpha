@@ -25,7 +25,11 @@ function normCdf(x: number): number {
 }
 
 export function priceOption(spot: number, strike: number, type: OptType, daysToExpiry: number, ivPct: number, ratePct = 6.5): OptionQuote {
-  const T = Math.max(daysToExpiry, 0.5) / 365
+  if (daysToExpiry <= 0) {
+    const intrinsic = Math.max(0, type === 'call' ? spot - strike : strike - spot)
+    return { strike, type, premium: intrinsic, intrinsic, timeValue: 0, delta: spot === strike ? (type === 'call' ? .5 : -.5) : type === 'call' ? (spot > strike ? 1 : 0) : (spot < strike ? -1 : 0), moneyness: spot === strike ? 'ATM' : intrinsic > 0 ? 'ITM' : 'OTM', breakeven: type === 'call' ? strike + intrinsic : strike - intrinsic }
+  }
+  const T = daysToExpiry / 365
   const iv = Math.max(ivPct, 1) / 100
   const r = ratePct / 100
 

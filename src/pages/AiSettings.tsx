@@ -65,7 +65,7 @@ export default function AiSettings() {
               </Field>
             </div>
             <Banner tone="warn">
-              Keys are stored only in this browser. Never enter a key on a shared device. Rate limit: max {LLM_CALLS_PER_MINUTE} AI answers per minute (protects your key quota). Some providers block browser calls (CORS); Groq, NVIDIA and Ollama are the reliable choices.
+              Keys stay in memory for this session and are cleared on reload. Never enter a key on a shared device. Rate limit: max {LLM_CALLS_PER_MINUTE} AI answers per minute (local convenience limit, not a secure spending cap). Some providers block browser calls (CORS); Check provider documentation for current availability and pricing.
             </Banner>
           </Section>
 
@@ -81,9 +81,9 @@ export default function AiSettings() {
       <Section title="Your fine-tuned model">
         <div className="card text-sm space-y-1">
           <div>1. Export the dataset (Fine-Tuning Dataset Builder screen).</div>
-          <div>2. Train on a free Colab GPU with docs/finetune/train_lora.py.</div>
-          <div>3. Serve it with Ollama, then pick the Ollama preset above.</div>
-          <div className="text-muted">Training needs a GPU, so it runs on Colab, not inside this app.</div>
+          <div>2. Review examples, then optionally run docs/finetune/train_lora.py with suitable local compute.</div>
+          <div>3. Merge and convert the adapter for your serving tool, or connect an existing compatible endpoint.</div>
+          <div className="text-muted">Training and conversion are separate optional steps, not verified by this app. See docs/finetune/README.md.</div>
         </div>
       </Section>
     </div>

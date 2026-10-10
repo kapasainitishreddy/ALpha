@@ -1,4 +1,5 @@
 import type { Candle, StrategySignal } from '@/types'
+import { useStore } from '@/store/useStore'
 import { evaluateStrategy } from './strategyEngine'
 import { debate } from '@/agents/managerAgents'
 import { getStrategyDoc } from '@/data/strategyDocs'
@@ -18,7 +19,7 @@ export interface Candidate {
 // AI-assisted: scan strategies, keep actionable signals, rank by confidence, attach explanations.
 export function scanCandidates(candles: Candle[], idx: number, max = 3): Candidate[] {
   const out: Candidate[] = []
-  for (const id of CANDIDATE_STRATEGIES) {
+  for (const id of [...CANDIDATE_STRATEGIES, ...useStore.getState().customStrategies.map(s => s.id)]) {
     const signal = evaluateStrategy(id, candles, idx)
     if (signal.action === 'hold' || signal.confidence < 0.5) continue
     const doc = getStrategyDoc(id)
@@ -26,7 +27,7 @@ export function scanCandidates(candles: Candle[], idx: number, max = 3): Candida
       signal,
       strategyName: doc?.name ?? id,
       debate: debate(signal),
-      whyItMayFail: `If this turns into a "${doc?.badMarket.toLowerCase()}" it can hit the stop. Volume/confirmation may be weak.`,
+      whyItMayFail: `If this turns into a "${doc?.badMarket?.toLowerCase() ?? 'an unsuitable market'}" it can hit the stop. Volume/confirmation may be weak.`,
       father: `${doc?.father ?? ''} Approve chesthe stop loss tho matrame. Nచ్chకపోతే reject.`,
     })
   }

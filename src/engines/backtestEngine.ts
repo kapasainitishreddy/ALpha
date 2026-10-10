@@ -1,7 +1,8 @@
 import type { BacktestResult, Trade } from '@/types'
 import { generateSession } from './mockMarketEngine'
 import { evaluateStrategy } from './strategyEngine'
-import { closeTrade, feeFor, fillPrice, grossPnl, hitStopOrTarget } from './tradeEngine'
+import { exitReference } from './paperExecution'
+import { closeTrade, feeFor, fillPrice, grossPnl } from './tradeEngine'
 import { getStrategyDoc } from '@/data/strategyDocs'
 import { getEvent } from '@/data/marketEvents'
 
@@ -27,9 +28,8 @@ export function runBacktest(
     const price = candles[i].close
     // Manage open position.
     if (open) {
-      const hit = hitStopOrTarget(open, price)
-      if (hit) {
-        const ref = hit === 'stop' ? open.stopLoss! : open.target!
+      const ref = exitReference(open, candles[i])
+      if (ref !== null) {
         const c = closeTrade(open, ref)
         balance += c.realizedPnl ?? 0
         feesPaid += c.fees
@@ -41,7 +41,8 @@ export function runBacktest(
     if (!open) {
       const sig = evaluateStrategy(strategyId, candles, i)
       if (sig.action !== 'hold' && sig.confidence >= 0.5) {
-        const qty = Math.max(1, Math.floor((balance * riskFraction) / price))
+        const qty = symbol.endsWith('USDT') ? balance * riskFraction / price : Math.floor((balance * riskFraction) / price)
+        if (qty <= 0) { equity.push(balance); continue }
         const entry = fillPrice(price, sig.action)
         open = {
           id: `bt${i}`,
@@ -57,7 +58,7 @@ export function runBacktest(
           strategyTag: strategyId,
           mode: 'backtest',
         }
-        feesPaid += open.fees
+
       }
     }
     equity.push(balance + (open ? grossPnl(open, price) : 0))
@@ -70,6 +71,7 @@ export function runBacktest(
     closed.push(c)
   }
 
+  equity.push(balance)
   return summarize(strategyId, symbol, eventId, startBalance, balance, closed, feesPaid, equity)
 }
 

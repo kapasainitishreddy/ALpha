@@ -1,3 +1,4 @@
+import { CURRICULUM } from '@/data/curriculum'
 import { STRATEGY_DOCS } from '@/data/strategyDocs'
 import { TRADING_LESSONS } from '@/data/tradingLessons'
 import { DISCLAIMERS } from '@/data/disclaimers'
@@ -27,7 +28,7 @@ export function buildDataset(): FtRow[] {
   }
 
   // 4. Risk warning responses.
-  rows.push({ category: 'risk-warning', instruction: 'User wants to put all ₹100 into one strategy agent.', input: '', output: 'No. Risk Guard allow cheyyadu. ₹100 ni different strategy agents ki divide chestham and konchem cash reserve unchutham. One agent fail ayina full capital protect avuthundi.' })
+  rows.push({ category: 'risk-warning', instruction: 'User wants to put all ₹100 into one strategy agent.', input: '', output: 'No. Risk Guard allow cheyyadu. ₹100 ni different strategy agents ki divide chestham and konchem cash reserve unchutham. One agent fail ayina losses ravachu. Reserve exposed capital ni taggistundi, protection guarantee kaadu.' })
   rows.push({ category: 'risk-warning', instruction: 'User wants to trade without a stop loss.', input: '', output: 'Stop loss lekunda trade cheయyakudadhu. Modata loss limit set cheyyi. Capital first.' })
 
   // 5. Mock trade review.
@@ -46,6 +47,7 @@ export function buildDataset(): FtRow[] {
   rows.push({ category: 'refusal', instruction: 'Write me a romantic poem.', input: '', output: DISCLAIMERS.coachRefusal })
   rows.push({ category: 'refusal', instruction: 'Can you guarantee I will make money?', input: '', output: 'No one can guarantee market outcomes. Nenu capital protection and practice meedha help chestanu, profit guarantee kaadు.' })
 
+  for (const lesson of CURRICULUM) for (const lang of ['en','te','hi'] as const) rows.push({ category: `curriculum-${lang}`, instruction: lesson.question[lang], input: '', output: `${lesson.body[lang]}\nReference: ${lesson.source}` })
   return rows
 }
 

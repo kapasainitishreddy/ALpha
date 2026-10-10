@@ -1,8 +1,12 @@
+import { localId } from '@/lib/id'
+import { useStore } from '@/store/useStore'
+import { accountRisk, reservedCapital, exitReference } from './paperExecution'
+import { evaluateRisk } from './riskGuardEngine'
 import type { AgentResult, RiskLevel, SwarmResult, Trade } from '@/types'
 import { generateSession } from './mockMarketEngine'
 import { agentDecide } from '@/agents/baseAgent'
 import { allocate, AgentSpec } from './portfolioAllocator'
-import { closeTrade, feeFor, fillPrice, hitStopOrTarget } from './tradeEngine'
+import { closeTrade, feeFor, fillPrice } from './tradeEngine'
 import { fatherCoachSummary, portfolioManagerReview, riskManagerVeto } from '@/agents/managerAgents'
 import { RISK_LIMITS } from '@/data/riskRules'
 
@@ -13,12 +17,17 @@ export interface SwarmOptions {
   specs: AgentSpec[]
   riskLevel?: RiskLevel
   candleCount?: number
+  commitToAccount?: boolean
 }
 
 // Runs the whole swarm (mock only): allocate -> loop candles -> each agent decides -> Risk Guard filters ->
 // mock fills -> per-agent P&L -> Portfolio Manager review + Father Coach summary. Stops on daily loss/target.
 export function runSwarm(opts: SwarmOptions): SwarmResult {
-  const { capital, symbol, eventId, specs, candleCount = 120 } = opts
+  const { symbol, eventId, specs, candleCount = 120 } = opts
+  const capital = opts.commitToAccount ? Math.min(opts.capital, Math.max(0, useStore.getState().balance - reservedCapital())) : opts.capital
+  const runId = opts.commitToAccount ? `swarm:${localId()}` : 'swarm'
+  const settle = (t: Trade) => { if (opts.commitToAccount) useStore.getState().settleTrade(t) }
+
   const { agents: configs, cashReserve } = allocate(capital, specs)
   const session = generateSession(symbol, eventId, candleCount)
   const { candles } = session
@@ -41,7 +50,9 @@ export function runSwarm(opts: SwarmOptions): SwarmResult {
   const dailyLossCap = RISK_LIMITS.dailyLossFraction * capital
   const targetCap = RISK_LIMITS.targetProfitFraction * capital
 
+  let lastIdx = 20
   for (let i = 20; i < candles.length; i++) {
+    lastIdx = i
     if (dailyPnl <= -dailyLossCap) { stoppedReason = 'Daily loss limit reached, swarm stopped.'; break }
     if (dailyPnl >= targetCap) { stoppedReason = 'Daily target reached, swarm stopped.'; break }
     const price = candles[i].close
@@ -50,10 +61,10 @@ export function runSwarm(opts: SwarmOptions): SwarmResult {
       // Manage open position for this agent.
       const cur = open[res.config.id]
       if (cur) {
-        const hit = hitStopOrTarget(cur, price)
-        if (hit) {
-          const ref = hit === 'stop' ? cur.stopLoss! : cur.target!
+        const ref = exitReference(cur, candles[i])
+        if (ref !== null) {
           const closed = closeTrade(cur, ref)
+          settle(closed)
           const pnl = closed.realizedPnl ?? 0
           res.pnl += pnl
           res.ending += pnl
@@ -73,15 +84,21 @@ export function runSwarm(opts: SwarmOptions): SwarmResult {
         consecutiveLosses: res.losses,
         dailyPnl: res.pnl,
         tradesToday: res.trades.length,
-      })
+      }, symbol.endsWith('USDT'))
       const side = decision.signal.action
       if (!decision.allowed || side === 'hold') {
         if (side !== 'hold') res.blockedTrades++
         return
       }
       const entry = fillPrice(decision.signal.entry, side)
+      if (opts.commitToAccount) {
+        const global = evaluateRisk({ ...accountRisk('swarm'), entry, tradeValue: entry * decision.qty, side,
+          stopLoss: decision.signal.stopLoss, target: decision.signal.target, agentAllocation: res.config.allocation })
+        if (!global.allow) { res.blockedTrades++; return }
+      }
+
       open[res.config.id] = {
-        id: `${res.config.id}-${i}`,
+        id: `${runId}-${res.config.id}-${i}`,
         symbol,
         side,
         qty: decision.qty,
@@ -89,21 +106,24 @@ export function runSwarm(opts: SwarmOptions): SwarmResult {
         stopLoss: decision.signal.stopLoss,
         target: decision.signal.target,
         status: 'open',
-        openedAt: i,
+        openedAt: opts.commitToAccount ? Date.now() : i,
+        sessionId: runId,
         fees: feeFor(entry * decision.qty),
         strategyTag: res.config.strategyId,
         agentId: res.config.id,
         mode: 'swarm',
       }
+      if (opts.commitToAccount) useStore.getState().addTrade(open[res.config.id]!)
     })
   }
 
   // Close dangling positions at last price.
-  const last = candles[candles.length - 1].close
+  const last = candles[lastIdx].close
   results.forEach((res) => {
     const cur = open[res.config.id]
     if (cur) {
       const closed = closeTrade(cur, last)
+      settle(closed)
       const pnl = closed.realizedPnl ?? 0
       res.pnl += pnl
       res.ending += pnl
