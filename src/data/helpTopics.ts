@@ -66,11 +66,11 @@ export const HELP_TOPICS: HelpTopic[] = [
   },
   {
     id: 'position-size',
-    question: 'How many shares should I buy?',
+    question: 'How do I calculate a practice quantity?',
     keywords: ['how many shares', 'position size', 'quantity', 'how much to buy', 'sizing', 'lot size'],
     answer:
-      'Never a round number you picked. Work it out:\n\nDecide what you are willing to lose on this trade — 1% of your capital is the professional standard. Then measure how far your stop loss is from your entry. Divide.\n\nExample: ₹10,000 capital, risking 1% = ₹100. Stop is ₹15 below entry. ₹100 ÷ ₹15 = 6 shares.\n\nThe stop distance decides the quantity. Not your confidence, not the price of the share. Risk Tools does this maths for you.',
-    father: 'Round number pettaku. Ela lekkinchali: capital lo 1% risk cheyyi. Stop loss entry nunchi enta duram undo choodu. Bhaginchu. ₹10,000 lo 1% = ₹100. Stop ₹15 duram. ₹100 ÷ ₹15 = 6 shares.',
+      'For a paper example, choose an illustrative loss budget, then divide by the entry-to-stop distance. No single percentage is a professional standard or suitable for everyone.\n\nExample only: ₹10,000 practice balance with a 1% example budget gives ₹100. With a ₹15 stop distance, ₹100 ÷ ₹15 is about 6 whole shares before fees. Exposure limits, costs and gaps still matter. The stop is not a guaranteed exit price.',
+    father: 'Paper example kosam mundu oka loss budget teesukoni, entry-stop distance tho divide cheyyi. Oke percentage andariki saripodu; idi personal advice kadu. Example: ₹10,000 lo 1% example budget ₹100. ₹15 stop distance tho ₹100 ÷ ₹15 ante kharchula mundu sumaaru 6 shares. Gap lo exit price guarantee kadu.',
     screens: ['/risk', '/manual', '/live'],
   },
   {
@@ -86,8 +86,8 @@ export const HELP_TOPICS: HelpTopic[] = [
     question: 'What is reward to risk?',
     keywords: ['reward risk', 'risk reward', 'r:r', 'rr ratio', 'ratio'],
     answer:
-      'How much you stand to make compared to how much you stand to lose.\n\nRisk ₹10 to make ₹20 and that is 2:1. At 2:1 you can be wrong 6 times out of 10 and still make money.\n\nRisk ₹10 to make ₹5 and that is 0.5:1. Now you need to win 7 times out of 10 just to break even — and nobody wins 7 out of 10 consistently.\n\nThis is why professionals win under half their trades and still profit. The size of the wins does the work, not the frequency.',
-    father: 'Enta risk chesi enta sampadistunnavo. ₹10 risk chesi ₹20 vaste 2:1. 2:1 unte 10 lo 6 sarlu tappu ayina profit vastundi. Win rate kanna reward:risk mukhyam.',
+      'Reward-to-risk compares the planned gain with the planned loss; it does not show whether a strategy will work. Before costs, risking ₹10 to make ₹20 has a 2:1 ratio and needs one win in three to break even mathematically. Fees, slippage, gaps and changing fills raise that threshold. A ratio alone is not a forecast.',
+    father: 'Reward-to-risk ante plan chesina labham ni plan chesina nashtam tho polchadam. ₹10 risk chesi ₹20 target ante 2:1. Kharchula mundu ganitham prakaram moodu trades lo okati geliste break-even. Fees, slippage, gaps valla inka ekkuva avasaram. Ee ratio future result cheppadu.',
     screens: ['/risk'],
   },
   {
@@ -133,11 +133,11 @@ export const HELP_TOPICS: HelpTopic[] = [
   },
   {
     id: 'options',
-    question: 'Should I trade options?',
+    question: 'What risks apply to options?',
     keywords: ['option', 'call put', 'f&o', 'fno', 'derivative', 'expiry'],
     answer:
-      'Almost certainly not, and definitely not yet.\n\nSEBI\'s own studies have found the large majority of retail option traders lose money. Options add two ways to lose that shares do not have: the option expires worthless on a date, and its value decays every single day you hold it even if the price never moves against you.\n\nThe Option Chain screen here exists so you can see that decay happen. It is a warning, not a product. Learn position sizing on plain shares first.',
-    father: 'Vaddu. SEBI research prakaram chala mandi retail option traders dabbulu pogottukuntaru. Options lo time decay untundi — rojuku value taggutundi. Mundu shares meeda nerchuko.',
+      'An option can expire worthless; its value can change with the underlying price, time, volatility, spread and liquidity. SEBI reported that 93% of individual traders in the equity futures-and-options segment incurred losses during FY22–FY24. That statistic covers a defined segment and period; it does not predict any person’s result or isolate every options strategy.\n\nThis app uses simplified hypothetical examples and cannot place orders. Read current exchange contract and risk disclosures before making real-world decisions. Source: SEBI, 23 Sep 2024 — https://www.sebi.gov.in/media-and-notifications/press-releases/sep-2024/updated-sebi-study-reveals-93-of-individual-traders-incurred-losses-in-equity-fando-between-fy22-and-fy24-aggregate-losses-exceed-1-8-lakh-crores-over-three-years_86906.html',
+    father: 'Option zero value tho expire avvachu; dhara, time, volatility, spread, liquidity valla value maarutundi. SEBI 2024 report prakaram FY22–FY24 lo equity F&O segment individual traders lo 93% loss lo unnaru. Idi aa group, samayam gurinchi; mee result prediction kadu. Ee app lo simple examples matrame; real orders pettadu.',
     screens: ['/options'],
   },
   {

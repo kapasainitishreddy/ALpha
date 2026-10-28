@@ -156,11 +156,9 @@ export default function Debate() {
         </div>
         {decided >= 5 && (
           <p className="text-xs text-muted leading-relaxed">
-            {accuracy >= 60
-              ? `${accuracy.toFixed(0)}% over ${decided} calls. Above a coin flip — but direction is the easy part. Position sizing and stops are what turn a good read into money.`
-              : accuracy >= 45
-                ? `${accuracy.toFixed(0)}% over ${decided} calls — essentially a coin flip, which is normal and honest. Most professionals win under 50% and profit through reward-to-risk, not accuracy.`
-                : `${accuracy.toFixed(0)}% over ${decided} calls. Worth asking whether you are consistently drawn to one side regardless of the evidence.`}
+            {accuracy.toFixed(0)}% of {decided} simulated calls scored right. This small practice sample is
+            descriptive only and does not predict real results. Accuracy alone leaves out position size,
+            payoff, costs and risk.
           </p>
         )}
       </Section>

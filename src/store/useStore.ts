@@ -6,7 +6,7 @@ import type { CustomStrategy } from '@/lib/customStrategy'
 import type { CustomScenario } from '@/lib/scenario'
 
 export interface ApiKeys {
-  // Optional user-provided keys. NEVER required. Stored in localStorage (with a UI warning).
+  // Optional user-provided values stay in memory for this session; persist() strips them.
   upstox?: string
   dhan?: string
   zerodha?: string

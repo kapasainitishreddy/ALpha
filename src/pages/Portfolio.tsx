@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { useStore } from '@/store/useStore'
 import { useTranslation } from '@/lib/i18n'
 import { reservedCapital } from '@/engines/paperExecution'
-import { exportBackup, restoreBackup, downloadText } from '@/lib/backup'
+import { deleteAllLocalData, exportBackup, inspectBackup, restoreBackup, downloadText, type BackupPreview } from '@/lib/backup'
 import { inr, pnlColor } from '@/lib/format'
 import { Banner, Section, Stat } from '@/components/common'
 function sessionRoute(id: string, symbol: string): string {
@@ -20,6 +20,7 @@ export default function Portfolio() {
   const s = useStore()
   const { t } = useTranslation()
   const [message, setMessage] = useState('')
+  const [pendingBackup, setPendingBackup] = useState<{ text: string; preview: BackupPreview } | null>(null)
   const open = s.trades.filter((t) => t.status === 'open')
   const closed = s.trades.filter((t) => t.status === 'closed')
   const reserve = reservedCapital()
@@ -97,11 +98,11 @@ export default function Portfolio() {
               try {
                 if (file.size > 5000000) throw new Error('Backup exceeds 5 MB.')
                 const text = await file.text()
-                if (confirm('Replace the paper account on this device with this backup?')) {
-                  restoreBackup(text)
-                  setMessage('Backup restored.')
-                }
+                const preview = inspectBackup(text)
+                setPendingBackup({ text, preview })
+                setMessage('Review the backup contents before replacing data.')
               } catch (err) {
+                setPendingBackup(null)
                 setMessage(err instanceof Error ? err.message : 'Invalid backup')
               } finally {
                 e.target.value = ''
@@ -109,6 +110,50 @@ export default function Portfolio() {
             }}
           />
         </label>
+        {pendingBackup && (
+          <div className="card space-y-2 text-sm" aria-label="Backup preview">
+            <p className="font-bold">Backup preview · version {pendingBackup.preview.version}</p>
+            <p>Saved: {pendingBackup.preview.savedAt}</p>
+            <p>
+              Main account: ₹{pendingBackup.preview.balance.toLocaleString()} balance ·{' '}
+              {pendingBackup.preview.trades} trades ({pendingBackup.preview.openPositions} open) ·{' '}
+              {pendingBackup.preview.pendingOrders} pending orders ·{' '}
+              {pendingBackup.preview.journalEntries} journal entries
+            </p>
+            {pendingBackup.preview.version === 2 ? (
+              <p>
+                Separate derivatives lab: {pendingBackup.preview.derivativePositions} positions
+                ({pendingBackup.preview.openDerivativePositions} open) · research note:{' '}
+                {pendingBackup.preview.researchNoteSections} filled sections
+              </p>
+            ) : (
+              <p role="note">
+                This legacy backup has no derivatives lab or research note. Existing copies on this
+                device will be preserved. Legacy order-event history is also preserved.
+              </p>
+            )}
+            <div className="flex gap-2">
+              <button
+                className="btn-primary flex-1"
+                onClick={() => {
+                  if (!confirm('Replace the paper account and included learning records on this device?')) return
+                  try {
+                    restoreBackup(pendingBackup.text)
+                    setMessage('Backup restored. Reloading…')
+                    window.setTimeout(() => window.location.reload(), 100)
+                  } catch (err) {
+                    setMessage(err instanceof Error ? err.message : 'Restore failed')
+                  }
+                }}
+              >
+                Restore this backup
+              </button>
+              <button className="chip" onClick={() => setPendingBackup(null)}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
         {message && (
           <p role="status" className="text-sm">
             {message}
@@ -118,6 +163,21 @@ export default function Portfolio() {
           Backup excludes API keys. Data stays on this device; no account sync. Export before
           clearing browser storage.
         </p>
+        <button
+          className="btn w-full"
+          onClick={() => {
+            if (!confirm('Delete all paper-account, derivatives-lab and research-note data on this device? This cannot be undone. Export a backup first if you may need these records.')) return
+            try {
+              deleteAllLocalData()
+              setMessage('Local practice data deleted. Reloading…')
+              window.setTimeout(() => window.location.reload(), 100)
+            } catch (err) {
+              setMessage(err instanceof Error ? err.message : 'Delete failed')
+            }
+          }}
+        >
+          Delete all local practice data
+        </button>
       </Section>
       <Banner>{t('simulationCosts')}</Banner>
     </div>

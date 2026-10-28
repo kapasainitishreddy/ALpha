@@ -60,9 +60,17 @@ export default function Options() {
   return (
     <div className="space-y-6">
       <Banner tone="warn">
-        <b>Options are the fastest way to lose money in Indian markets.</b> SEBI's own data shows the large
-        majority of retail option traders lose. This screen exists so you understand why before you ever
-        consider one — not to encourage you to trade them.
+        <b>Options can expire worthless; modeled values here are hypothetical.</b> SEBI reported that 93% of
+        individual traders in the equity futures-and-options segment incurred losses during FY22–FY24.
+        This describes that group and period, not your outcome or every strategy.{' '}
+        <a
+          className="underline"
+          href="https://www.sebi.gov.in/media-and-notifications/press-releases/sep-2024/updated-sebi-study-reveals-93-of-individual-traders-incurred-losses-in-equity-fando-between-fy22-and-fy24-aggregate-losses-exceed-1-8-lakh-crores-over-three-years_86906.html"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          SEBI study (23 Sep 2024)
+        </a>
       </Banner>
 
       <div className="grid grid-cols-2 gap-3">

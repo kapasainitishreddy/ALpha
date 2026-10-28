@@ -32,7 +32,7 @@ Open `http://localhost:4173`. `PORT` can override 4173. A static `dist/` host al
 - `/manual`: deterministic scenarios, market/limit/stop-entry orders, long/short paper positions, risk limits and journals. Crypto supports fractional quantities; equity and synthetic index units are whole quantities. A new session requires closing that session's positions and pending orders.
 - `/live`: Yahoo Finance equity/index quotes and CoinGecko INR crypto snapshots. Source time and freshness checks are shown. Polling cannot reproduce tick execution or order-book depth.
 - `/replay`: chronological daily history or CSV import, with persistent resume and paper orders. CSV header: `time,open,high,low,close,volume`; time is Unix seconds or an ISO date. Use 25–5,000 ascending rows and positive consistent OHLC values.
-- `/portfolio`: shared paper ledger, reserved capital, position resume links and credential-free backup/restore.
+- `/portfolio`: shared paper ledger, reserved capital, position resume links and credential-free versioned backup/restore with a content preview.
 - `/derivatives`: a **separate** ₹50,000 lab for futures, long options, debit spreads, straddles and bounded iron condors. Modelled marks, Greeks, daily futures variation margin, expiry and maintenance liquidation. Lot/margin assumptions are educational, not current exchange specifications.
 - `/models`: distinct pairs, inventory-grid, market-making, two-venue arbitrage, inverse-volatility, OLS and tabular Q-learning experiments. Synthetic inputs, explicit assumptions, fees and held-out evaluation for learned policies. These do not change the paper account or represent institutional models. The headline demo uses keywords, not FinBERT.
 - `/research`: public source directory and a saved thesis checklist. Screeners and community posts are starting points; verify original filings. There is no secret website that identifies certain winners.
@@ -53,7 +53,7 @@ Auto and Swarm update the shared account as trades execute. Journal saving is id
 
 Yahoo's chart endpoint is an **unofficial third-party source**, may be delayed or unavailable, and is not a licensed tick feed. CoinGecko can rate-limit requests. The server accepts only whitelisted instruments, has bounded upstream concurrency, fixed upstream URLs, timeouts and short caching, and respects managed HTTP/HTTPS proxies. Market hours are a weekday/time approximation without a holiday calendar; stale quotes prevent live practice orders. CSV and generated markets remain available when a provider fails. Historical corporate actions and survivorship bias are not corrected by this app.
 
-Data is stored on this device, without server accounts, cloud sync or a public leaderboard. Main-account backups exclude credentials. Derivatives and research notes have separate local storage and are not part of the main-account backup. Export main account data before clearing browser storage. The v2 migration preserves closed history but discards legacy open trades because the previous version did not retain their market/session identity. It does not invent closes or P/L for those positions.
+Data is stored on this device, without server accounts, cloud sync or a public leaderboard. Version 2 backups cover the main paper ledger (including pending orders, replay sessions and recent order events), the separate derivatives ledger and the saved research checklist. Credentials are excluded. Restore validates all included data before writing, shows a content preview and rolls storage back if a write fails; the page reloads after a successful restore. Legacy version 1 backups restore the main ledger and preserve this device's separate derivatives, research and order-event data because v1 files did not contain those records. Export before clearing browser storage. The v2 migration preserves closed history but discards legacy open trades because the previous version did not retain their market/session identity. It does not invent closes or P/L for those positions.
 
 API keys stay in memory and are cleared on reload. Optional LLM requests go to the endpoint the user configures, may incur provider charges, time out after 20 seconds and fall back to curated tutoring. The client limiter and phrase/topic checks are convenience controls, not secure quota enforcement or a comprehensive safety system. The optional Vite passcode is a cosmetic local gate, not authentication.
 
@@ -64,10 +64,11 @@ The offline shell caches only same-origin app assets/pages, never quotes or AI r
 ```sh
 npm run typecheck
 npm run build
+npm test
 npm audit
 ```
 
-The existing test command remains `npm test`; no new test suite was added or executed for this implementation request. CI installs from the repaired lockfile and builds with TypeScript checks. Build/dependency verification and limited browser rendering observations are recorded in [implementation notes](docs/implementation-status.md). These are not a full functional regression sign-off.
+The isolated recovery checkpoint adds versioned backup/restore and delete coverage. Its exact-head results and review limits are recorded in [security and privacy review](docs/security-privacy-review.md) and [backup format](docs/backup-format.md). The browser backup journey was checked in Chromium with synthetic data. Other feature families still need the test, accessibility and device evidence tracked in [FEATURE_LEDGER.csv](FEATURE_LEDGER.csv); this is not a full release sign-off.
 
 [Open-source and education references](docs/open-source-references.md) · [Optional tutor training](docs/finetune/README.md) · [Real-mode prerequisites](docs/future-real-mode-compliance.md)
 
