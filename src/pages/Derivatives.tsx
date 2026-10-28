@@ -3,6 +3,7 @@ import { Banner, Field, Section, Stat } from '@/components/common'
 import { MOCK_SYMBOLS } from '@/data/mockSymbols'
 import { generateSession } from '@/engines/mockMarketEngine'
 import { useTranslation } from '@/lib/i18n'
+import { DERIVATIVE_LAB_ASSUMPTIONS } from '@/data/practiceAssumptions'
 import { inr, pnlColor } from '@/lib/format'
 import {
   legValue,
@@ -41,7 +42,7 @@ function savedBook(): DerivativeBook {
   }
 }
 export default function Derivatives() {
-  const { t } = useTranslation()
+  const { t, language } = useTranslation()
   const [book, setBook] = useState<DerivativeBook>(savedBook)
   const [kind, setKind] = useState<'future' | 'option'>('option')
   const [structure, setStructure] = useState<OptionStructure>('bull-call')
@@ -114,8 +115,12 @@ export default function Derivatives() {
     <div className="space-y-5">
       <h1 className="text-xl font-bold">{t('Futures & options practice')}</h1>
       <Banner>
-        {t('paperNotice')} Separate ₹50,000 derivatives lab account. One candle = one hypothetical
-        day; prices are generated, not an exchange option chain. No broker orders.
+        {t('paperNotice')}{' '}
+        {language === 'te'
+          ? 'ప్రధాన ఖాతా నుంచి వేరైన ₹50,000 డెరివేటివ్స్ ల్యాబ్. ఒక క్యాండిల్ = ఒక కల్పిత రోజు. ధరలు స్థానికంగా రూపొందుతాయి; ఇవి ఎక్స్చేంజ్ ఆప్షన్ చైన్ కావు. బ్రోకర్ ఆర్డర్లు లేవు.'
+          : language === 'hi'
+            ? 'मुख्य खाते से अलग ₹50,000 डेरिवेटिव लैब। एक कैंडल = एक काल्पनिक दिन। भाव स्थानीय रूप से बनते हैं; यह एक्सचेंज ऑप्शन चेन नहीं। ब्रोकर ऑर्डर नहीं।'
+            : 'Separate ₹50,000 derivatives lab account. One candle = one hypothetical day. Prices are generated locally, not an exchange option chain. No broker orders.'}
       </Banner>
       <Field label={t('instrument')}>
         <select
@@ -150,7 +155,15 @@ export default function Derivatives() {
               <option value="future">Futures (10% initial margin)</option>
             </select>
           </Field>
-          <Field label="Units (illustrative multiplier)">
+          <Field
+            label={
+              language === 'te'
+                ? 'మోడల్ యూనిట్లు (గుణకం 1; ఎక్స్చేంజ్ లాట్ కాదు)'
+                : language === 'hi'
+                  ? 'मॉडल यूनिट (गुणक 1; एक्सचेंज लॉट नहीं)'
+                  : 'Model units (multiplier 1; not exchange lots)'
+            }
+          >
             <input
               type="number"
               className="input"
@@ -244,8 +257,11 @@ export default function Derivatives() {
             ))}
           </div>
           <p className="text-xs text-muted">
-            Per unit. Theta: one day decay; vega: +1 percentage point IV. European Black–Scholes
-            with flat IV and no dividends. Not real premiums.
+              {language === 'te'
+                ? 'ప్రతి మోడల్ యూనిట్‌కు. థీటా: ఒక రోజు మార్పు; వేగా: IVలో +1 శాతం పాయింట్. స్థిర IV, డివిడెండ్ లేని యూరోపియన్ బ్లాక్–షోల్స్ నమూనా. నిజమైన ప్రీమియాలు కావు.'
+                : language === 'hi'
+                  ? 'प्रति मॉडल यूनिट। थीटा: एक दिन का बदलाव; वेगा: IV में +1 प्रतिशत बिंदु। स्थिर IV और बिना लाभांश वाला यूरोपीय ब्लैक–शोल्स मॉडल। वास्तविक प्रीमियम नहीं।'
+                  : 'Per model unit. Theta: one-day change; vega: +1 percentage point IV. European Black–Scholes with flat IV and no dividends. Not real premiums.'}
           </p>
         </Section>
       )}
@@ -286,11 +302,7 @@ export default function Derivatives() {
           ))}
       </Section>
       <Banner tone="warn">
-        Units and margin are teaching assumptions, not current exchange lots. Entry and exit each
-        charge 0.03% fees + 0.05% friction on gross leg value. Futures variation is credited or
-        debited daily in this lab. Isolated maintenance is 50% of initial margin. Futures margin is
-        collateral, not maximum loss; gaps can create losses beyond it. No physical delivery, early
-        exercise, funding or tax model.
+        {DERIVATIVE_LAB_ASSUMPTIONS[language]}
       </Banner>
       <Link className="text-accent underline" to="/learn">
         {t('learn')} →

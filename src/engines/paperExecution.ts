@@ -1,6 +1,10 @@
 import { localId } from '@/lib/id'
 import type { AppMode, Candle, OrderRequest, RiskDecision, Trade } from '@/types'
 import { useStore } from '@/store/useStore'
+
+export function stopTriggered(side: 'buy' | 'sell', observedPrice: number, triggerPrice: number): boolean {
+  return side === 'buy' ? observedPrice >= triggerPrice : observedPrice <= triggerPrice
+}
 import { evaluateRisk } from './riskGuardEngine'
 import { closeTrade, fillPrice, openTrade } from './tradeEngine'
 
@@ -67,7 +71,7 @@ export function submitPaperOrder(
   const marketable =
     order.type === 'market' ||
     (order.type === 'limit' && (order.side === 'buy' ? price <= reference : price >= reference)) ||
-    (order.type === 'stop' && (order.side === 'buy' ? price >= reference : price <= reference))
+    (order.type === 'stop' && stopTriggered(order.side, price, reference))
   const expected = marketable
     ? order.type === 'limit'
       ? order.side === 'buy'
@@ -150,9 +154,7 @@ export function processPaperBar(sessionId: string, symbol: string, bar: Candle) 
         ? o.side === 'buy'
           ? bar.low <= ref
           : bar.high >= ref
-        : o.side === 'buy'
-          ? bar.high >= ref
-          : bar.low <= ref
+        : stopTriggered(o.side, o.side === 'buy' ? bar.high : bar.low, ref)
     if (!touched) continue
     const fill =
       o.type === 'limit'

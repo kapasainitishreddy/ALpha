@@ -38,6 +38,15 @@ describe('priceOption', () => {
     const q = priceOption(1000, 1000, 'call', 30, 20)
     expect(q.breakeven).toBeCloseTo(q.strike + q.premium, 5)
   })
+
+  it('shows pre-expiry resale value can rise below the expiry break-even', () => {
+    const entry = priceOption(100, 100, 'call', 30, 20, 6.5)
+    const nextDay = priceOption(101, 100, 'call', 29, 20, 6.5)
+    expect(entry.premium).toBeCloseTo(2.557356, 5)
+    expect(nextDay.premium).toBeCloseTo(3.092236, 5)
+    expect(101).toBeLessThan(entry.breakeven)
+    expect(nextDay.premium).toBeGreaterThan(entry.premium)
+  })
 })
 
 describe('strikeLadder', () => {

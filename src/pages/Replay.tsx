@@ -15,6 +15,7 @@ import { hashSeed } from '@/lib/rng'
 import { generateSession } from '@/engines/mockMarketEngine'
 import { CURRICULUM } from '@/data/curriculum'
 import { LESSON_EXAMPLES } from '@/data/lessonExamples'
+import { REPLAY_ASSUMPTIONS } from '@/data/practiceAssumptions'
 import type { Candle, OrderType } from '@/types'
 
 const lessonReplayCopy = {
@@ -28,6 +29,11 @@ const lessonReplayCopy = {
     te: 'అభ్యాసం కోసం స్థానికంగా రూపొందించబడింది; ఇది ఎక్స్చేంజ్ చరిత్ర కాదు, లైవ్ వ్యూహానికి సాక్ష్యం కాదు.',
     hi: 'अभ्यास के लिए स्थानीय रूप से बने हैं; यह एक्सचेंज इतिहास या लाइव रणनीति का प्रमाण नहीं है।',
   },
+} as const
+const replayIntro = {
+  en: 'One completed bar appears at a time. Knowing later bars can still bias a practice decision.',
+  te: 'ఒకసారి ఒక పూర్తయిన క్యాండిల్ మాత్రమే కనిపిస్తుంది. తర్వాతి క్యాండిల్స్ ముందే తెలుసుకోవడం అభ్యాస నిర్ణయాన్ని ప్రభావితం చేయవచ్చు.',
+  hi: 'एक समय में एक पूरी बार दिखती है। बाद की बारें पहले से जानना अभ्यास निर्णय को प्रभावित कर सकता है।',
 } as const
 
 export default function Replay() {
@@ -126,8 +132,7 @@ export default function Replay() {
     <div className="space-y-5">
       <h1 className="text-xl font-bold">{t('replay')}</h1>
       <Banner>
-        {t('paperNotice')} Replay reveals one completed bar at a time. Historical knowledge can
-        still bias your decisions; it is practice, not proof of a live edge.
+        {t('paperNotice')} {replayIntro[language]}
       </Banner>
       {lesson && (
         <Section title={lesson.title[language]}>
@@ -320,10 +325,7 @@ export default function Replay() {
         </>
       )}
       <Banner>
-        {t('simulationCosts')} On a bar touching both exits, the stop is chosen conservatively. A
-        pending order filled within a bar cannot take a same-bar target unless the order was
-        executable at the open. Corporate actions and survivorship bias are not corrected by this
-        simulator.
+        {t('simulationCosts')} {REPLAY_ASSUMPTIONS[language]}
       </Banner>
     </div>
   )

@@ -12,6 +12,7 @@ import { Sparkline } from '@/components/Sparkline'
 import { Banner, Field, Section, Stat } from '@/components/common'
 import { SymbolEventPicker } from '@/components/session'
 import { inr } from '@/lib/format'
+import { EXPERIMENT_ASSUMPTIONS, MODEL_RETURN_ASSUMPTIONS } from '@/data/practiceAssumptions'
 const names: Record<Experiment, [string, string, string]> = {
   pairs: ['Pairs spread', 'పెయిర్ స్ప్రెడ్', 'पेयर स्प्रेड'],
   grid: ['Inventory grid', 'ఇన్వెంటరీ గ్రిడ్', 'इन्वेंटरी ग्रिड'],
@@ -76,6 +77,16 @@ export default function Models() {
           ))}
         </select>
       </Field>
+      <Section
+        title={
+          language === 'te' ? 'మోడల్ ఊహలు మరియు పరిమితులు' : language === 'hi' ? 'मॉडल की धारणाएँ और सीमाएँ' : 'Model assumptions and limits'
+        }
+      >
+        <div className="card space-y-3 text-sm leading-relaxed">
+          <p>{MODEL_RETURN_ASSUMPTIONS[language]}</p>
+          <p>{EXPERIMENT_ASSUMPTIONS[kind][language]}</p>
+        </div>
+      </Section>
       <SymbolEventPicker symbol={symbol} event={event} onSymbol={setSymbol} onEvent={setEvent} />
       <Field label="Deterministic seed">
         <input

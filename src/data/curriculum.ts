@@ -1,5 +1,5 @@
 import type { Language } from '@/lib/i18n'
-export interface Lesson { id: string; title: Record<Language,string>; body: Record<Language,string>; question: Record<Language,string>; answers: Record<Language,string[]>; correct: number; route: string; source: string }
+export interface Lesson { id: string; title: Record<Language,string>; body: Record<Language,string>; question: Record<Language,string>; answers: Record<Language,string[]>; correct: number; route: string; source: string; relatedSources?: { label: string; url: string }[] }
 export const CURRICULUM: Lesson[] = [
   {
     "id": "ownership",
@@ -9,9 +9,9 @@ export const CURRICULUM: Lesson[] = [
       "hi": "शेयर और स्वामित्व"
     },
     "body": {
-      "en": "A share is a small ownership interest in a company. Buying a rising price is not the same as buying a sound business. Read its filings, cash flow and debt; a dividend is not guaranteed.",
-      "te": "షేర్ అంటే కంపెనీలో చిన్న యాజమాన్య భాగం. ధర పెరుగుతోందని మంచి వ్యాపారం అని భావించవద్దు. నివేదికలు, నగదు ప్రవాహం, అప్పులు చూడండి. డివిడెండ్ ఖాయం కాదు.",
-      "hi": "शेयर कंपनी में छोटी हिस्सेदारी है। बढ़ता भाव अच्छे कारोबार का प्रमाण नहीं। रिपोर्ट, नकदी प्रवाह और कर्ज देखें। लाभांश निश्चित नहीं है."
+      "en": "A share is an ownership interest in a company. Issued shares are those the company has issued; outstanding shares are currently held by investors (after subtracting treasury shares). Ownership percentage uses the relevant class’s outstanding shares. A rising price is not proof of a sound business, and dividends are not guaranteed.",
+      "te": "షేర్ అంటే కంపెనీలో యాజమాన్య భాగం. జారీ చేసిన షేర్లు కంపెనీ విడుదల చేసినవి; బకాయి షేర్లు ట్రెజరీలో ఉన్నవాటిని తీసివేసి ప్రస్తుతం పెట్టుబడిదారుల వద్ద ఉన్నవి. యాజమాన్య శాతం సంబంధిత తరగతి బకాయి షేర్లతో లెక్కించాలి. పెరుగుతున్న ధర మంచి వ్యాపారానికి సాక్ష్యం కాదు; డివిడెండ్ ఖాయం కాదు.",
+      "hi": "शेयर कंपनी में हिस्सेदारी है। जारी शेयर वे हैं जिन्हें कंपनी ने जारी किया; बकाया शेयर वे हैं जो ट्रेजरी शेयर घटाने के बाद निवेशकों के पास हैं। स्वामित्व प्रतिशत संबंधित वर्ग के बकाया शेयरों से निकालें। बढ़ता भाव अच्छे कारोबार का प्रमाण नहीं और लाभांश निश्चित नहीं।"
     },
     "question": {
       "en": "What does a share represent?",
@@ -37,7 +37,8 @@ export const CURRICULUM: Lesson[] = [
     },
     "correct": 0,
     "route": "/manual",
-    "source": "https://www.investor.gov/introduction-investing/investing-basics/investment-products/stocks"
+    "source": "https://www.investor.gov/introduction-investing/investing-basics/investment-products/stocks",
+    "relatedSources": [{"label":"SEC — Issued and Outstanding Shares","url":"https://www.sec.gov/resources-small-businesses/glossary"}]
   },
   {
     "id": "orders",
@@ -47,9 +48,9 @@ export const CURRICULUM: Lesson[] = [
       "hi": "मार्केट, लिमिट और स्टॉप ऑर्डर"
     },
     "body": {
-      "en": "A market order prioritizes execution, not price. A buy limit can fill at or below its limit, but may never fill. A buy stop activates above its trigger. Stop exits can slip through their level during a gap.",
-      "te": "మార్కెట్ ఆర్డర్‌లో ధర కన్నా అమలు ముఖ్యం. బై లిమిట్ నిర్ణయించిన ధర లేదా తక్కువ ధరలో నిండవచ్చు; అసలు నిండకపోవచ్చు. బై స్టాప్ ట్రిగ్గర్ పైకి వెళ్లినప్పుడు చలిస్తుంది. గ్యాప్‌లో స్టాప్ లాస్ కంటే ఎక్కువ నష్టం రావచ్చు.",
-      "hi": "मार्केट ऑर्डर में निष्पादन को प्राथमिकता है, भाव को नहीं। बाय लिमिट तय भाव या नीचे भर सकती है, पर भरना निश्चित नहीं। बाय स्टॉप ट्रिगर के ऊपर सक्रिय होती है। गैप में स्टॉप से अधिक नुकसान हो सकता है."
+      "en": "A market order prioritizes execution, not price. A buy limit can fill at or below its limit, but may never fill. A buy stop activates when price reaches or exceeds its trigger. A gap can cause a stop fill away from its trigger; this bar model is not an executable quote.",
+      "te": "మార్కెట్ ఆర్డర్‌లో ధర కన్నా అమలు ముఖ్యం. బై లిమిట్ నిర్ణయించిన ధర లేదా తక్కువ ధరలో నిండవచ్చు; అసలు నిండకపోవచ్చు. ధర ట్రిగ్గర్‌ను చేరినప్పుడు లేదా దాటినప్పుడు బై స్టాప్ చలిస్తుంది. గ్యాప్‌లో ట్రిగ్గర్ ధరకు భిన్నంగా అమలు కావచ్చు; ఈ క్యాండిల్ నమూనా అమలయ్యే కోట్ కాదు.",
+      "hi": "मार्केट ऑर्डर में निष्पादन को प्राथमिकता है, भाव को नहीं। बाय लिमिट तय भाव या नीचे भर सकती है, पर भरना निश्चित नहीं। भाव ट्रिगर तक पहुँचने या उससे ऊपर जाने पर बाय स्टॉप सक्रिय होती है। गैप में भराव ट्रिगर से अलग भाव पर हो सकता है; यह बार मॉडल निष्पादन योग्य कोट नहीं है."
     },
     "question": {
       "en": "Can a limit order remain unfilled?",
@@ -199,9 +200,9 @@ export const CURRICULUM: Lesson[] = [
       "hi": "ट्रेंड, EMA और मूविंग एवरेज"
     },
     "body": {
-      "en": "EMA weights recent prices more. A crossover or price above a rising average is a rule, not proof of an edge. Trend rules can repeatedly lose in sideways markets. Test several regimes.",
-      "te": "EMA ఇటీవలి ధరలకు ఎక్కువ బరువు ఇస్తుంది. క్రాస్ఓవర్ లేదా పెరుగుతున్న సగటుపైన ధర ఒక నియమం; లాభానికి సాక్ష్యం కాదు. పక్కదారి మార్కెట్‌లో ట్రెండ్ నియమాలు వరుస నష్టాలు ఇవ్వవచ్చు.",
-      "hi": "EMA हाल के भावों को अधिक वजन देती है। क्रॉसओवर या बढ़ते औसत के ऊपर भाव एक नियम है, लाभ का प्रमाण नहीं। रेंज वाले बाजार में ट्रेंड नियम बार बार नुकसान दे सकते हैं."
+      "en": "EMA weights recent prices more. A crossover or price above a rising average is a rule, not proof of an edge. Trend rules can repeatedly lose in sideways markets. Test several market regimes; this is not evidence of an edge.",
+      "te": "EMA ఇటీవలి ధరలకు ఎక్కువ బరువు ఇస్తుంది. క్రాస్ఓవర్ లేదా పెరుగుతున్న సగటుపైన ధర ఒక నియమం; లాభానికి సాక్ష్యం కాదు. పక్కదారి మార్కెట్‌లో ట్రెండ్ నియమాలు వరుస నష్టాలు ఇవ్వవచ్చు. విభిన్న మార్కెట్ పరిస్థితుల్లో పరీక్షించండి; ఇది లాభదాయకతకు సాక్ష్యం కాదు.",
+      "hi": "EMA हाल के भावों को अधिक वजन देती है। क्रॉसओवर या बढ़ते औसत के ऊपर भाव एक नियम है, लाभ का प्रमाण नहीं। रेंज वाले बाजार में ट्रेंड नियम बार-बार नुकसान दे सकते हैं। अलग-अलग बाजार परिस्थितियों में जाँचें; यह बढ़त का प्रमाण नहीं है।"
     },
     "question": {
       "en": "Where can trend rules struggle?",
@@ -341,7 +342,7 @@ export const CURRICULUM: Lesson[] = [
     },
     "correct": 0,
     "route": "/research",
-    "source": "https://zerodha.com/varsity/module/fundamental-analysis/"
+    "source": "https://www.nseindia.com/companies-listing/corporate-filings-announcements"
   },
   {
     "id": "portfolio",
@@ -379,7 +380,7 @@ export const CURRICULUM: Lesson[] = [
     },
     "correct": 0,
     "route": "/models?kind=allocation",
-    "source": "https://www.investor.gov/introduction-investing/investing-basics/asset-allocation"
+    "source": "https://www.investor.gov/introduction-investing/getting-started/asset-allocation"
   },
   {
     "id": "shorts",
@@ -417,7 +418,8 @@ export const CURRICULUM: Lesson[] = [
     },
     "correct": 0,
     "route": "/manual",
-    "source": "https://www.investor.gov/introduction-investing/investing-basics/investment-products/stocks/short-sales"
+    "source": "https://www.sec.gov/investor/pubs/regsho.htm",
+    "relatedSources": [{"label":"Investor.gov — Stock Purchases and Sales (Long and Short)","url":"https://www.investor.gov/introduction-investing/investing-basics/how-stock-markets-work/stock-purchases-and-sales-long-and"}]
   },
   {
     "id": "futures",
@@ -503,9 +505,9 @@ export const CURRICULUM: Lesson[] = [
       "hi": "बहु लेग ऑप्शन और पेऑफ"
     },
     "body": {
-      "en": "A vertical spread combines the same option type at two strikes. A long straddle buys a call and put; it needs a large move to cover both premiums. Net expiry payoff ignores pre-expiry liquidity, assignment and exercise risk.",
-      "te": "వెర్టికల్ స్ప్రెడ్ ఒకే రకం ఆప్షన్లను రెండు స్ట్రైక్‌లలో కలుపుతుంది. లాంగ్ స్ట్రాడిల్ కాల్, పుట్ రెండూ కొంటుంది; రెండు ప్రీమియంలను కవర్ చేయడానికి పెద్ద కదలిక అవసరం. గడువు పేఆఫ్‌లో ముందరి లిక్విడిటీ, అసైన్మెంట్ రిస్క్ కనిపించవు.",
-      "hi": "वर्टिकल स्प्रेड एक प्रकार की ऑप्शन को दो स्ट्राइक पर जोड़ता है। लॉन्ग स्ट्रैडल कॉल और पुट खरीदता है; दोनों प्रीमियम भरने को बड़ी चाल चाहिए। एक्सपायरी पेऑफ में पहले की लिक्विडिटी और असाइनमेंट जोखिम नहीं दिखते."
+      "en": "A vertical spread uses long and short legs on the same underlying, option type and expiry, at different strikes. A long straddle buys a call and put on the same underlying, strike and expiry. At expiry, the move must be large enough to recover both premiums; before expiry, implied volatility can change resale value. This payoff omits liquidity and exercise/assignment risk; the lab uses a European-style model and does not represent Indian contract rules.",
+      "te": "వెర్టికల్ స్ప్రెడ్‌లో ఒకే అండర్లయింగ్, ఆప్షన్ రకం, గడువుపై వేర్వేరు స్ట్రైక్‌ల వద్ద లాంగ్, షార్ట్ లెగ్స్ ఉంటాయి. లాంగ్ స్ట్రాడిల్‌లో ఒకే అండర్లయింగ్, స్ట్రైక్, గడువుతో కాల్, పుట్ కొనుగోలు చేస్తారు. గడువు నాడు రెండు ప్రీమియంలను తిరిగి పొందేందుకు ధర కదలిక పెద్దదై ఉండాలి; గడువుకు ముందు ఇంప్లైడ్ వోలాటిలిటీ పునర్విక్రయ విలువను మార్చవచ్చు. ఈ పే-ఆఫ్‌లో లిక్విడిటీ, ఎక్సర్సైజ్/అసైన్‌మెంట్ రిస్క్ లేవు; ల్యాబ్ యూరోపియన్-శైలి నమూనా, భారత కాంట్రాక్ట్ నియమాలు కాదు.",
+      "hi": "वर्टिकल स्प्रेड में एक ही अंडरलाइंग, ऑप्शन प्रकार और समाप्ति पर अलग-अलग स्ट्राइक के लॉन्ग और शॉर्ट लेग होते हैं। लॉन्ग स्ट्रैडल में उसी अंडरलाइंग, स्ट्राइक और समाप्ति की कॉल और पुट खरीदी जाती हैं। समाप्ति पर दोनों प्रीमियम वसूलने के लिए बड़ी चाल चाहिए; उससे पहले इम्प्लाइड वोलैटिलिटी पुनर्विक्रय मूल्य बदल सकती है। पेऑफ में तरलता और एक्सरसाइज/असाइनमेंट जोखिम नहीं हैं; लैब यूरोपीय-शैली मॉडल है, भारतीय अनुबंध नियम नहीं।"
     },
     "question": {
       "en": "Does a long straddle profit from every small move?",
@@ -531,7 +533,8 @@ export const CURRICULUM: Lesson[] = [
     },
     "correct": 0,
     "route": "/derivatives",
-    "source": "https://www.optionseducation.org/strategies/all-strategies"
+    "source": "https://www.optionseducation.org/strategies/all-strategies/bull-call-spread-debit-call-spread",
+    "relatedSources": [{"label":"OIC — Long Straddle","url":"https://www.optionseducation.org/strategies/all-strategies/long-straddle"}]
   },
   {
     "id": "backtesting",
@@ -542,7 +545,7 @@ export const CURRICULUM: Lesson[] = [
     },
     "body": {
       "en": "Only use information available at the decision time. Include fees, spread, slippage and terminal exits. Keep a held out period, try several regimes, and never tune on the final evaluation set. Survivorship and corporate actions can bias history.",
-      "te": "నిర్ణయ సమయంలో అందుబాటులో ఉన్న సమాచారం మాత్రమే వాడండి. ఫీజు, స్ప్రెడ్, స్లిపేజ్, చివరి ఎగ్జిట్ చేర్చండి. విడిగా పరీక్ష కాలం ఉంచి అనేక పరిస్థితులు చూడండి. చివరి పరీక్ష డేటాపై ట్యూన్ చేయవద్దు. మిగిలిన కంపెనీలు మాత్రమే చూడడం పక్షపాతం కలిగిస్తుంది.",
+      "te": "నిర్ణయ సమయంలో అందుబాటులో ఉన్న సమాచారం మాత్రమే వాడండి. ఫీజు, స్ప్రెడ్, స్లిపేజ్, చివరి ఎగ్జిట్ చేర్చండి. విడిగా పరీక్ష కాలం ఉంచి అనేక పరిస్థితులు చూడండి. చివరి పరీక్ష డేటాపై ట్యూన్ చేయవద్దు. కార్పొరేట్ చర్యలు, ప్రస్తుతం మిగిలిన కంపెనీలకే చరిత్రను పరిమితం చేయడం ఫలితాలను పక్షపాతంగా చూపవచ్చు.",
       "hi": "निर्णय समय पर उपलब्ध सूचना ही लें। शुल्क, स्प्रेड, स्लिपेज और अंतिम एग्जिट जोड़ें। अलग परीक्षण अवधि रखें और कई परिस्थितियाँ देखें। अंतिम परीक्षण डेटा पर ट्यून न करें। बचे हुए शेयर और कॉर्पोरेट बदलाव इतिहास को पक्षपाती कर सकते हैं."
     },
     "question": {

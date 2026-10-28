@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { CURRICULUM, getLessonChoiceOrder } from '@/data/curriculum'
 import { LESSON_EXAMPLES } from '@/data/lessonExamples'
+import { LESSON_WRONG_FEEDBACK } from '@/data/lessonFeedback'
 import { useStore } from '@/store/useStore'
 import { useTranslation } from '@/lib/i18n'
 import { Banner, Section } from '@/components/common'
@@ -95,7 +96,9 @@ export default function Learn() {
               {t(answer === lesson.correct ? 'correct' : 'retry')}
             </p>
             {answer !== lesson.correct && (
-              <p className="text-xs text-muted">{LESSON_EXAMPLES[lesson.id][language]}</p>
+              <p className="text-xs text-muted">
+                {LESSON_WRONG_FEEDBACK[lesson.id]?.[language]?.[answer ?? -1] ?? LESSON_EXAMPLES[lesson.id][language]}
+              </p>
             )}
           </div>
         )}
@@ -108,6 +111,11 @@ export default function Learn() {
       >
         {t('sources')} ↗
       </a>
+      {lesson.relatedSources?.map((source) => (
+        <a key={source.url} className="ml-3 text-accent text-sm underline" href={source.url} target="_blank" rel="noopener noreferrer">
+          {source.label} ↗
+        </a>
+      ))}
     </div>
   )
 }
