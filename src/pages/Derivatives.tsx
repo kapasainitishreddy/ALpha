@@ -8,6 +8,7 @@ import {
   legValue,
   optionLegs,
   optionGreeks,
+  advanceLabBook,
   markPosition,
   createLabPosition,
   closeLabPosition,
@@ -70,49 +71,7 @@ export default function Derivatives() {
   }
   const advance = () => {
     if (book.idx >= 119) return
-    const idx = book.idx + 1
-    const next = candles[idx].close
-    let balance = book.balance
-    let positions = book.positions.map((original) => {
-      if (original.closedPnl !== undefined) return original
-      let p = original
-      if (p.kind === 'future') {
-        const variation = markPosition(p, next, idx)
-        balance += variation
-        p = { ...p, entry: next, variationPnl: (p.variationPnl ?? 0) + variation }
-      }
-      const pnl = (p.variationPnl ?? 0) + markPosition(p, next, idx) - p.entryFee
-      const forced = p.kind === 'future' && p.margin + pnl < p.margin * 0.5
-      if (idx >= p.expiryIdx || forced || idx === 119) {
-        const c = closeLabPosition(
-          p,
-          next,
-          idx,
-          forced
-            ? 'Maintenance margin breach'
-            : idx >= p.expiryIdx
-              ? 'Expiry cash settlement'
-              : 'Session ended',
-        )
-        balance += c.closedPnl! - (p.variationPnl ?? 0)
-        return c
-      }
-      return p
-    })
-    // Account equity falling below half of reserved collateral liquidates all remaining lab positions.
-    const active = positions.filter((p) => p.closedPnl === undefined)
-    if (
-      balance + active.reduce((v, p) => v + markPosition(p, next, idx) - p.entryFee, 0) <
-      active.reduce((v, p) => v + p.margin * 0.5, 0)
-    ) {
-      positions = positions.map((p) => {
-        if (p.closedPnl !== undefined) return p
-        const c = closeLabPosition(p, next, idx, 'Account margin liquidation')
-        balance += c.closedPnl! - (p.variationPnl ?? 0)
-        return c
-      })
-    }
-    persist({ ...book, idx, balance, positions })
+    persist(advanceLabBook(book, candles[book.idx + 1].close))
   }
   const place = (side: 1 | -1) => {
     try {

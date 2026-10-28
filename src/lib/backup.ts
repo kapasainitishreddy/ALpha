@@ -1,7 +1,8 @@
 import { useStore } from '@/store/useStore'
 import { validateCandles } from './historical'
 import { MOCK_SYMBOLS } from '@/data/mockSymbols'
-import { legValue, type DerivativeBook, type OptionStructure } from './derivatives'
+import { generateSession } from '@/engines/mockMarketEngine'
+import { futureNeedsMaintenanceClose, labBookBelowMaintenance, legValue, type DerivativeBook, type OptionStructure } from './derivatives'
 import { priceOption } from './options'
 
 const mainFields = [
@@ -67,7 +68,6 @@ function validateDerivativeBook(value: unknown): value is DerivativeBook {
     typeof value.symbol !== 'string' || !MOCK_SYMBOLS.some((s) => s.symbol === value.symbol) ||
     !Array.isArray(value.positions) || value.positions.length > 1000) return false
   const ids = new Set<string>()
-  let reserved = 0
   for (const p of value.positions as unknown[]) {
     if (!isRecord(p) || !text(p.id, 120) || ids.has(p.id) ||
       !['future', 'option'].includes(p.kind) || typeof p.symbol !== 'string' ||
@@ -85,7 +85,8 @@ function validateDerivativeBook(value: unknown): value is DerivativeBook {
       (p.closedIdx !== undefined && (!Number.isInteger(p.closedIdx) || p.closedIdx < p.openedIdx || p.closedIdx > value.idx)) ||
       (p.reason !== undefined && !text(p.reason, 300)) ||
       ((p.closedPnl === undefined) !== (p.closedIdx === undefined)) ||
-      ((p.closedPnl === undefined) !== (p.reason === undefined))) return false
+      ((p.closedPnl === undefined) !== (p.reason === undefined)) ||
+      (p.closedPnl === undefined && (p.expiryIdx <= value.idx || value.idx >= 119))) return false
     ids.add(p.id)
     for (const leg of p.legs as unknown[]) {
       if (!isRecord(leg) || !['call', 'put'].includes(leg.type) ||
@@ -112,11 +113,15 @@ function validateDerivativeBook(value: unknown): value is DerivativeBook {
         : Math.max(0, expectedEntry) * p.units
       if (!closeEnough(p.margin, expectedMargin) || !closeEnough(p.entryFee, notional * 0.0008)) return false
     }
-    if (p.closedPnl === undefined) reserved += p.margin + p.entryFee
   }
   const negativeBalanceHasFutureLoss = value.balance >= 0 ||
     value.positions.some((p: any) => p.kind === 'future' && p.closedPnl !== undefined)
-  return Number.isFinite(reserved) && reserved <= Math.max(0, value.balance) + 1e-8 && negativeBalanceHasFutureLoss
+  const open = value.positions.filter((p: any) => p.closedPnl === undefined)
+  const spot = generateSession(value.symbol, 'high-vol', 120, 34).candles[value.idx].close
+  const book = value as DerivativeBook
+  return negativeBalanceHasFutureLoss &&
+    open.every((p: any) => !futureNeedsMaintenanceClose(p, spot, value.idx)) &&
+    !labBookBelowMaintenance(book, spot, value.idx)
 }
 
 function closeEnough(actual: number, expected: number): boolean {

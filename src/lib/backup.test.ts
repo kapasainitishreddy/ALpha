@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { MOCK_SYMBOLS } from '@/data/mockSymbols'
+import { generateSession } from '@/engines/mockMarketEngine'
 import { useStore } from '@/store/useStore'
-import { closeLabPosition, createLabPosition, type OptionStructure } from './derivatives'
+import { advanceLabBook, closeLabPosition, createLabPosition, markPosition, type OptionStructure } from './derivatives'
 import { deleteAllLocalData, exportBackup, inspectBackup, restoreBackup } from './backup'
 
 class MemoryStorage {
@@ -137,6 +139,53 @@ describe('versioned paper-account backup', () => {
     expect(JSON.parse(storage.getItem(derivativesKey)!)).toEqual(book)
   })
 
+  it('round trips a post-settlement state whose reserved collateral exceeds cash but passes engine maintenance', () => {
+    let setup: { symbol: string; idx: number; opening: number; next: number } | undefined
+    for (const instrument of MOCK_SYMBOLS) {
+      const candles = generateSession(instrument.symbol, 'high-vol', 120, 34).candles
+      for (let idx = 20; idx < 119; idx++) {
+        const opening = candles[idx].close
+        const next = candles[idx + 1].close
+        const drop = 1 - next / opening
+        if (drop > 0.011 && drop < 0.045) {
+          setup = { symbol: instrument.symbol, idx, opening, next }
+          break
+        }
+      }
+      if (setup) break
+    }
+    expect(setup).toBeDefined()
+    const { symbol, idx, opening, next } = setup!
+    const units = 49_900 / opening
+    const positions = Array.from({ length: 9 }, () =>
+      createLabPosition('future', symbol, opening, idx, 1, units, 'call', 30, 20, 200),
+    )
+    const initial = { version: 1 as const, balance: 50_000, idx, symbol, positions }
+    const initialReserve = positions.reduce((sum, p) => sum + p.margin + p.entryFee, 0)
+    expect(initialReserve).toBeLessThan(50_000)
+    expect(opening * units).toBeLessThanOrEqual(50_000)
+    expect(positions.every((p, index) => (index + 1) * (p.margin + p.entryFee) <= 50_000)).toBe(true)
+
+    const settled = advanceLabBook(initial, next)
+    const settledReserve = settled.positions.reduce((sum, p) =>
+      sum + (p.closedPnl === undefined ? p.margin + p.entryFee : 0), 0)
+    expect(settled.positions.every((p) => p.closedPnl === undefined)).toBe(true)
+    expect(settledReserve).toBeGreaterThan(settled.balance)
+    const currentSpot = generateSession(symbol, 'high-vol', 120, 34).candles[settled.idx].close
+    const equity = settled.balance + settled.positions.reduce(
+      (sum, p) => sum + markPosition(p, currentSpot, settled.idx) - p.entryFee, 0,
+    )
+    const maintenance = settled.positions.reduce((sum, p) => sum + p.margin * 0.5, 0)
+    expect(equity).toBeGreaterThanOrEqual(maintenance)
+    expect(currentSpot).toBe(next)
+
+    storage.setItem(derivativesKey, JSON.stringify(settled))
+    const raw = exportBackup()
+    storage.setItem(derivativesKey, JSON.stringify({ ...settled, positions: [] }))
+    restoreBackup(raw)
+    expect(JSON.parse(storage.getItem(derivativesKey)!)).toEqual(settled)
+  })
+
   it('preserves a negative lab cash balance caused by a modeled short-futures gap loss', () => {
     const opening = createLabPosition('future', 'NIFTY50', 24_000, 20, -1, 2, 'call', 30, 20, 200)
     const closed = closeLabPosition(opening, 50_000, 21, 'Manual exit')
@@ -202,6 +251,17 @@ describe('versioned paper-account backup', () => {
     const before = storage.snapshot()
 
     expect(() => restoreBackup(JSON.stringify(bad))).toThrow('Invalid derivatives lab data')
+    expect(storage.snapshot()).toEqual(before)
+  })
+
+  it('rejects a lab snapshot below account maintenance without changing stored ledgers', () => {
+    const spot = generateSession('NIFTY50', 'high-vol', 120, 34).candles[20].close
+    const position = createLabPosition('option', 'NIFTY50', spot, 20, 1, 1, 'call', 30, 20, 200)
+    const source = JSON.parse(exportBackup())
+    source.derivatives = { version: 1, balance: 1, idx: 20, symbol: 'NIFTY50', positions: [position] }
+    const before = storage.snapshot()
+
+    expect(() => restoreBackup(JSON.stringify(source))).toThrow('Invalid derivatives lab data')
     expect(storage.snapshot()).toEqual(before)
   })
 

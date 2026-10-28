@@ -91,6 +91,19 @@ export function markPosition(p: LabPosition, spot: number, idx: number): number 
 export function collateral(p: LabPosition): number {
   return p.margin
 }
+export function futureNeedsMaintenanceClose(p: LabPosition, spot: number, idx: number): boolean {
+  if (p.kind !== 'future' || p.closedPnl !== undefined) return false
+  const pnl = (p.variationPnl ?? 0) + markPosition(p, spot, idx) - p.entryFee
+  return p.margin + pnl < p.margin * 0.5
+}
+export function labBookBelowMaintenance(book: DerivativeBook, spot: number, idx: number): boolean {
+  const active = book.positions.filter((p) => p.closedPnl === undefined)
+  if (active.length === 0) return false
+  return (
+    book.balance + active.reduce((v, p) => v + markPosition(p, spot, idx) - p.entryFee, 0) <
+    active.reduce((v, p) => v + p.margin * 0.5, 0)
+  )
+}
 export function createLabPosition(
   kind: 'future' | 'option',
   symbol: string,
@@ -164,4 +177,45 @@ export function closeLabPosition(
   const pnl =
     (p.variationPnl ?? 0) + markPosition(p, spot, idx) - p.entryFee - exitNotional * 0.0008
   return { ...p, closedPnl: pnl, closedIdx: idx, reason }
+}
+
+export function advanceLabBook(book: DerivativeBook, next: number): DerivativeBook {
+  if (!Number.isFinite(next) || next <= 0) throw new Error('Invalid settlement price.')
+  if (book.idx >= 119) return book
+  const idx = book.idx + 1
+  let balance = book.balance
+  let positions = book.positions.map((original) => {
+    if (original.closedPnl !== undefined) return original
+    let p = original
+    if (p.kind === 'future') {
+      const variation = markPosition(p, next, idx)
+      balance += variation
+      p = { ...p, entry: next, variationPnl: (p.variationPnl ?? 0) + variation }
+    }
+    const forced = futureNeedsMaintenanceClose(p, next, idx)
+    if (idx >= p.expiryIdx || forced || idx === 119) {
+      const c = closeLabPosition(
+        p,
+        next,
+        idx,
+        forced
+          ? 'Maintenance margin breach'
+          : idx >= p.expiryIdx
+            ? 'Expiry cash settlement'
+            : 'Session ended',
+      )
+      balance += c.closedPnl! - (p.variationPnl ?? 0)
+      return c
+    }
+    return p
+  })
+  if (labBookBelowMaintenance({ ...book, idx, balance, positions }, next, idx)) {
+    positions = positions.map((p) => {
+      if (p.closedPnl !== undefined) return p
+      const c = closeLabPosition(p, next, idx, 'Account margin liquidation')
+      balance += c.closedPnl! - (p.variationPnl ?? 0)
+      return c
+    })
+  }
+  return { ...book, idx, balance, positions }
 }
