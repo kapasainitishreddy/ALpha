@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { CURRICULUM } from '@/data/curriculum'
+import { CURRICULUM, getLessonChoiceOrder } from '@/data/curriculum'
+import { LESSON_EXAMPLES } from '@/data/lessonExamples'
 import { useStore } from '@/store/useStore'
 import { useTranslation } from '@/lib/i18n'
 import { Banner, Section } from '@/components/common'
@@ -12,9 +13,8 @@ export default function Learn() {
   const [answer, setAnswer] = useState<number | null>(null)
   const [checked, setChecked] = useState(false)
   const lesson = CURRICULUM.find((l) => l.id === active)!
-  // Rotate choices by lesson to avoid training the learner to always click the first option.
-  const offset = CURRICULUM.indexOf(lesson) % 3
-  const choices = lesson.answers[language].map((_, i) => (i + offset) % 3)
+  // Rotate choices by lesson while retaining their canonical answer indexes.
+  const choices = getLessonChoiceOrder(CURRICULUM.indexOf(lesson), lesson.answers[language].length)
   return (
     <div className="space-y-5">
       <h1 className="text-xl font-bold">{t('learn')}</h1>
@@ -45,6 +45,16 @@ export default function Learn() {
       <Section title={lesson.title[language]}>
         <div className="card space-y-4">
           <p className="text-sm leading-relaxed">{lesson.body[language]}</p>
+          <div className="rounded-lg border border-edge bg-panel2 p-3">
+            <p className="label">
+              {language === 'te'
+                ? 'కల్పిత ఉదాహరణ'
+                : language === 'hi'
+                  ? 'काल्पनिक उदाहरण'
+                  : 'Worked synthetic example'}
+            </p>
+            <p className="text-sm leading-relaxed mt-1">{LESSON_EXAMPLES[lesson.id][language]}</p>
+          </div>
           <SpeakButton text={lesson.body[language]} />
           <Link className="btn-primary block text-center" to={lesson.route}>
             {t('practice')}
@@ -80,9 +90,14 @@ export default function Learn() {
           {t('check')}
         </button>
         {checked && (
-          <p role="status" className={answer === lesson.correct ? 'text-up' : 'text-warn'}>
-            {t(answer === lesson.correct ? 'correct' : 'retry')}
-          </p>
+          <div role="status" className="space-y-2">
+            <p className={answer === lesson.correct ? 'text-up' : 'text-warn'}>
+              {t(answer === lesson.correct ? 'correct' : 'retry')}
+            </p>
+            {answer !== lesson.correct && (
+              <p className="text-xs text-muted">{LESSON_EXAMPLES[lesson.id][language]}</p>
+            )}
+          </div>
         )}
       </Section>
       <a

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useTranslation } from '@/lib/i18n'
 import {
@@ -29,13 +29,18 @@ const names: Record<Experiment, [string, string, string]> = {
   regression: ['OLS return regression', 'OLS రిటర్న్ రిగ్రెషన్', 'OLS रिटर्न रिग्रेशन'],
   'q-learning': ['Tabular Q-learning', 'టాబులర్ Q-లెర్నింగ్', 'टैबुलर Q-लर्निंग'],
 }
+const isExperiment = (value: string): value is Experiment => Object.hasOwn(names, value)
 export default function Models() {
   const { t, language } = useTranslation()
   const [params] = useSearchParams()
   const requested = params.get('kind') ?? 'pairs'
   const [kind, setKind] = useState<Experiment>(
-    requested in names ? (requested as Experiment) : 'pairs',
+    isExperiment(requested) ? requested : 'pairs',
   )
+  useEffect(() => {
+    setKind(isExperiment(requested) ? requested : 'pairs')
+    setResult(null)
+  }, [requested])
   const [symbol, setSymbol] = useState('INFY')
   const [event, setEvent] = useState('sideways')
   const [seed, setSeed] = useState(42)

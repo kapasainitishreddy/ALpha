@@ -5,6 +5,7 @@ import { Banner, Field, Section, Stat } from '@/components/common'
 import { MOCK_SYMBOLS } from '@/data/mockSymbols'
 import { maxLoss, payoffCurve, priceOption, strikeLadder, type OptType } from '@/lib/options'
 import { inr, pnlColor } from '@/lib/format'
+import { useTranslation } from '@/lib/i18n'
 
 // Indian lot sizes are instrument-specific; these are illustrative round numbers, not exchange data.
 const LOT: Record<string, number> = { NIFTY50: 75, BANKNIFTY: 35, RELIANCE: 500, TCS: 175, INFY: 400, HDFCBANK: 550 }
@@ -36,6 +37,7 @@ function PayoffChart({ points, spot, breakeven }: { points: { price: number; pnl
 }
 
 export default function Options() {
+  const { language } = useTranslation()
   const [symbol, setSymbol] = useState('NIFTY50')
   const [type, setType] = useState<OptType>('call')
   const [days, setDays] = useState(7)
@@ -130,8 +132,11 @@ export default function Options() {
         </Field>
         <p className="flex gap-1.5 text-[11px] text-muted leading-relaxed">
           <Info size={12} className="shrink-0 mt-0.5 text-accent" />
-          Drag expiry down and watch the premium fall even when nothing else changes. That is theta —
-          time decay — and it works against you every single day you hold a bought option.
+          {language === 'te'
+            ? 'గడువును తగ్గించి ఈ ధర నమూనాలో సమయం మారితే విలువ ఎలా మారుతుందో చూడండి. థీటా సమయానికి ఉన్న సున్నితత్వాన్ని అంచనా వేస్తుంది; అది స్థిరం కాదు. అండర్లయింగ్ ధర, వోలాటిలిటీ వంటి ఇతర అంశాలు దాని ప్రభావాన్ని తగ్గించవచ్చు లేదా మించవచ్చు. నమూనా ప్రీమియాలు కల్పితం.'
+            : language === 'hi'
+              ? 'समाप्ति समय घटाकर देखें कि इस मूल्य मॉडल में समय के साथ मान कैसे बदलता है। थीटा समय के प्रति संवेदनशीलता का अनुमान है; यह स्थिर नहीं है। अंडरलाइंग भाव और वोलैटिलिटी जैसे अन्य कारक इसके प्रभाव को घटा या पार कर सकते हैं। मॉडल प्रीमियम काल्पनिक हैं।'
+              : 'Drag expiry down to see how this pricing model changes with time. Theta estimates time sensitivity; it is not constant, and other inputs such as the underlying price and volatility can offset or outweigh it. Modeled premiums are hypothetical.'}
         </p>
       </Section>
 

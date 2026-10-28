@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { CandleChart } from '@/components/CandleChart'
 import { Banner, Field, Section, Stat } from '@/components/common'
 import { Positions, ClosedList, PendingOrders } from '@/components/session'
@@ -11,10 +12,29 @@ import { closeTrade, grossPnl } from '@/engines/tradeEngine'
 import { finishSession } from '@/lib/finish'
 import { inr } from '@/lib/format'
 import { hashSeed } from '@/lib/rng'
+import { generateSession } from '@/engines/mockMarketEngine'
+import { CURRICULUM } from '@/data/curriculum'
+import { LESSON_EXAMPLES } from '@/data/lessonExamples'
 import type { Candle, OrderType } from '@/types'
+
+const lessonReplayCopy = {
+  button: {
+    en: 'Load deterministic synthetic practice bars',
+    te: 'నిర్దిష్ట సీడ్‌తో కల్పిత అభ్యాస క్యాండిల్స్ లోడ్ చేయండి',
+    hi: 'निश्चित सीड वाले काल्पनिक अभ्यास कैंडल लोड करें',
+  },
+  note: {
+    en: 'Generated locally for practice; not exchange history or evidence of a live strategy.',
+    te: 'అభ్యాసం కోసం స్థానికంగా రూపొందించబడింది; ఇది ఎక్స్చేంజ్ చరిత్ర కాదు, లైవ్ వ్యూహానికి సాక్ష్యం కాదు.',
+    hi: 'अभ्यास के लिए स्थानीय रूप से बने हैं; यह एक्सचेंज इतिहास या लाइव रणनीति का प्रमाण नहीं है।',
+  },
+} as const
+
 export default function Replay() {
   const store = useStore()
-  const { t } = useTranslation()
+  const { t, language } = useTranslation()
+  const [searchParams] = useSearchParams()
+  const lesson = CURRICULUM.find((item) => item.id === searchParams.get('lesson'))
   const [symbol, setSymbol] = useState('INFY')
   const [id, setId] = useState('')
   const [source, setSource] = useState('')
@@ -109,6 +129,24 @@ export default function Replay() {
         {t('paperNotice')} Replay reveals one completed bar at a time. Historical knowledge can
         still bias your decisions; it is practice, not proof of a live edge.
       </Banner>
+      {lesson && (
+        <Section title={lesson.title[language]}>
+          <div className="card space-y-3">
+            <p className="text-sm">{lesson.body[language]}</p>
+            <p className="text-sm text-muted">{LESSON_EXAMPLES[lesson.id][language]}</p>
+            <button
+              className="btn-ghost w-full"
+              disabled={open.length > 0}
+              onClick={() =>
+                load(generateSession(symbol, 'high-vol', 60, 42).candles, 'Synthetic lesson bars · fixed seed 42')
+              }
+            >
+              {lessonReplayCopy.button[language]}
+            </button>
+            <p className="text-xs text-muted">{lessonReplayCopy.note[language]}</p>
+          </div>
+        </Section>
+      )}
       <Field label={t('instrument')}>
         <select
           className="input"

@@ -188,7 +188,7 @@ export const CURRICULUM: Lesson[] = [
       ]
     },
     "correct": 0,
-    "route": "/replay",
+    "route": "/replay?lesson=candles",
     "source": "https://zerodha.com/varsity/module/technical-analysis/"
   },
   {
@@ -378,7 +378,7 @@ export const CURRICULUM: Lesson[] = [
       ]
     },
     "correct": 0,
-    "route": "/models",
+    "route": "/models?kind=allocation",
     "source": "https://www.investor.gov/introduction-investing/investing-basics/asset-allocation"
   },
   {
@@ -455,7 +455,7 @@ export const CURRICULUM: Lesson[] = [
     },
     "correct": 0,
     "route": "/derivatives",
-    "source": "https://www.cmegroup.com/education/courses/introduction-to-futures.html"
+    "source": "https://www.nseindia.com/static/products-services/equity-derivatives-contract-specifications"
   },
   {
     "id": "options",
@@ -493,7 +493,7 @@ export const CURRICULUM: Lesson[] = [
     },
     "correct": 0,
     "route": "/options",
-    "source": "https://www.optionseducation.org/optionsoverview/options-basics"
+    "source": "https://www.optionseducation.org/advancedconcepts/understanding-options-greeks"
   },
   {
     "id": "spreads",
@@ -568,8 +568,8 @@ export const CURRICULUM: Lesson[] = [
       ]
     },
     "correct": 0,
-    "route": "/replay",
-    "source": "https://www.backtrader.com/docu/"
+    "route": "/backtest",
+    "source": "https://arxiv.org/abs/1408.1159"
   },
   {
     "id": "pairs",
@@ -606,8 +606,8 @@ export const CURRICULUM: Lesson[] = [
       ]
     },
     "correct": 0,
-    "route": "/models",
-    "source": "https://www.quantconnect.com/docs/v2/research-environment/"
+    "route": "/models?kind=pairs",
+    "source": "https://doi.org/10.2307/1913236"
   },
   {
     "id": "microstructure",
@@ -644,8 +644,8 @@ export const CURRICULUM: Lesson[] = [
       ]
     },
     "correct": 0,
-    "route": "/models",
-    "source": "https://hummingbot.org/strategy-configs/"
+    "route": "/models?kind=grid",
+    "source": "https://www.sec.gov/newsroom/speeches-statements/spch092804cag-remarks-council-institutional-investors"
   },
   {
     "id": "arbitrage",
@@ -682,7 +682,7 @@ export const CURRICULUM: Lesson[] = [
       ]
     },
     "correct": 0,
-    "route": "/models",
+    "route": "/models?kind=arbitrage",
     "source": "https://hummingbot.org/strategies/"
   },
   {
@@ -720,7 +720,7 @@ export const CURRICULUM: Lesson[] = [
       ]
     },
     "correct": 0,
-    "route": "/models",
+    "route": "/models?kind=regression",
     "source": "https://scikit-learn.org/stable/modules/cross_validation.html#time-series-split"
   },
   {
@@ -758,7 +758,7 @@ export const CURRICULUM: Lesson[] = [
       ]
     },
     "correct": 0,
-    "route": "/models",
+    "route": "/models?kind=q-learning",
     "source": "https://github.com/AI4Finance-Foundation/FinRL"
   },
   {
@@ -797,7 +797,7 @@ export const CURRICULUM: Lesson[] = [
     },
     "correct": 0,
     "route": "/research",
-    "source": "https://huggingface.co/ProsusAI/finbert"
+    "source": "https://www.nist.gov/publications/artificial-intelligence-risk-management-framework-generative-artificial-intelligence"
   },
   {
     "id": "research",
@@ -914,3 +914,11 @@ export const CURRICULUM: Lesson[] = [
     "source": "https://www.investor.gov/introduction-investing/investing-basics/investment-products"
   }
 ]
+
+/** Display-order rotation is separate from the stored answer index. */
+export function getLessonChoiceOrder(lessonIndex: number, answerCount: number): number[] {
+  if (!Number.isInteger(lessonIndex) || lessonIndex < 0 || !Number.isInteger(answerCount) || answerCount < 1)
+    return []
+  const offset = lessonIndex % answerCount
+  return Array.from({ length: answerCount }, (_, index) => (index + offset) % answerCount)
+}
