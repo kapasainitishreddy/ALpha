@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { useStore } from '@/store/useStore'
+import { closeLabPosition, createLabPosition, type OptionStructure } from './derivatives'
 import { deleteAllLocalData, exportBackup, inspectBackup, restoreBackup } from './backup'
 
 class MemoryStorage {
@@ -39,6 +40,10 @@ function seedCurrentDevice() {
   storage.setItem(researchKey, JSON.stringify(['Existing research note']))
 }
 
+function createOption(structure: OptionStructure, units = 1) {
+  return createLabPosition('option', 'NIFTY50', 20_000, 20, 1, units, structure, 30, 20, 200)
+}
+
 describe('versioned paper-account backup', () => {
   beforeEach(() => {
     storage = new MemoryStorage()
@@ -59,10 +64,19 @@ describe('versioned paper-account backup', () => {
   })
 
   it('exports the separate derivatives and research ledgers without credentials', () => {
+    const openFuture = {
+      ...createLabPosition('future', 'NIFTY50', 24_000, 25, 1, 1, 'call', 15, 18, 200),
+      entry: 24_100,
+      variationPnl: 100,
+    }
+    const closedOption = closeLabPosition(
+      createLabPosition('option', 'BANKNIFTY', 45_000, 23, 1, 1, 'call', 6, 20, 200),
+      45_000, 29, 'Expiry cash settlement',
+    )
     storage.setItem(derivativesKey, JSON.stringify({
       version: 1, balance: 48_250, idx: 32, symbol: 'NIFTY50', positions: [
-        { id: 'open-future', kind: 'future', symbol: 'NIFTY50', units: 1, side: 1, entry: 24_000, openedIdx: 25, expiryIdx: 40, legs: [], iv: 18, margin: 2_400, entryFee: 2, variationPnl: 100 },
-        { id: 'closed-option', kind: 'option', symbol: 'BANKNIFTY', units: 1, side: 1, entry: 100, openedIdx: 23, expiryIdx: 29, legs: [{ type: 'call', strike: 45_000, side: 1 }], iv: 20, margin: 100, entryFee: 1, closedPnl: -101, closedIdx: 29, reason: 'Expiry cash settlement' },
+        { ...openFuture, id: 'open-future' },
+        { ...closedOption, id: 'closed-option' },
       ],
     }))
     const backup = JSON.parse(exportBackup())
@@ -75,6 +89,76 @@ describe('versioned paper-account backup', () => {
     expect(inspectBackup(JSON.stringify(backup))).toMatchObject({
       version: 2, balance: 12_345, derivativePositions: 2, openDerivativePositions: 1, researchNoteSections: 1,
     })
+  })
+
+  it.each(['call', 'put', 'bull-call', 'bear-put', 'straddle', 'iron-condor'] as const)(
+    'round trips model-generated %s option positions', (structure) => {
+      const position = createOption(structure, structure === 'iron-condor' ? 10 : 1)
+      const book = { version: 1, balance: 50_000, idx: 20, symbol: 'NIFTY50', positions: [position] }
+      storage.setItem(derivativesKey, JSON.stringify(book))
+      const raw = exportBackup()
+
+      if (structure === 'iron-condor') expect(position.entry).toBeLessThan(0)
+      else expect(position.entry).toBeGreaterThan(0)
+
+      storage.setItem(derivativesKey, JSON.stringify({ ...book, positions: [] }))
+      restoreBackup(raw)
+      expect(JSON.parse(storage.getItem(derivativesKey)!)).toEqual(book)
+      expect(inspectBackup(raw)).toMatchObject({ derivativePositions: 1, openDerivativePositions: 1 })
+    },
+  )
+
+  it('accepts the zero-cash empty-ledger boundary and preserves zero variation context', () => {
+    const position = { ...createLabPosition('future', 'NIFTY50', 20_000, 20, 1, 1, 'call', 30, 20, 200), variationPnl: 0 }
+    const book = { version: 1, balance: 50_000, idx: 20, symbol: 'NIFTY50', positions: [position] }
+    storage.setItem(derivativesKey, JSON.stringify({ ...book, balance: 0, positions: [] }))
+    const emptyBackup = exportBackup()
+    restoreBackup(emptyBackup)
+    expect(JSON.parse(storage.getItem(derivativesKey)!)).toMatchObject({ balance: 0, positions: [] })
+
+    storage.setItem(derivativesKey, JSON.stringify(book))
+    const backup = exportBackup()
+    storage.setItem(derivativesKey, JSON.stringify({ ...book, positions: [] }))
+    restoreBackup(backup)
+    expect(JSON.parse(storage.getItem(derivativesKey)!).positions[0].variationPnl).toBe(0)
+  })
+
+  it.each([1, -1] as const)('round trips a futures position after %s-side daily settlement', (side) => {
+    const opening = 24_000
+    const current = 24_100
+    const initial = createLabPosition('future', 'NIFTY50', opening, 20, side, 2, 'call', 30, 20, 200)
+    const variationPnl = (current - opening) * initial.units * side
+    const position = { ...initial, entry: current, variationPnl }
+    const book = { version: 1, balance: 50_000 + variationPnl, idx: 21, symbol: 'NIFTY50', positions: [position] }
+    storage.setItem(derivativesKey, JSON.stringify(book))
+    const raw = exportBackup()
+    storage.setItem(derivativesKey, JSON.stringify({ ...book, positions: [] }))
+    restoreBackup(raw)
+    expect(JSON.parse(storage.getItem(derivativesKey)!)).toEqual(book)
+  })
+
+  it('preserves a negative lab cash balance caused by a modeled short-futures gap loss', () => {
+    const opening = createLabPosition('future', 'NIFTY50', 24_000, 20, -1, 2, 'call', 30, 20, 200)
+    const closed = closeLabPosition(opening, 50_000, 21, 'Manual exit')
+    const book = {
+      version: 1, balance: 50_000 + closed.closedPnl!, idx: 21, symbol: 'NIFTY50', positions: [closed],
+    }
+    expect(book.balance).toBeLessThan(0)
+    storage.setItem(derivativesKey, JSON.stringify(book))
+    const raw = exportBackup()
+    storage.setItem(derivativesKey, JSON.stringify({ ...book, balance: 0, positions: [] }))
+    restoreBackup(raw)
+    expect(JSON.parse(storage.getItem(derivativesKey)!)).toEqual(book)
+  })
+
+  it('preserves fractional option units accepted by the derivatives model', () => {
+    const position = createOption('put', 0.5)
+    const book = { version: 1, balance: 50_000, idx: 20, symbol: 'NIFTY50', positions: [position] }
+    storage.setItem(derivativesKey, JSON.stringify(book))
+    const raw = exportBackup()
+    storage.setItem(derivativesKey, JSON.stringify({ ...book, positions: [] }))
+    restoreBackup(raw)
+    expect(JSON.parse(storage.getItem(derivativesKey)!).positions[0].units).toBe(0.5)
   })
 
   it('preserves replay sessions and order-event context', () => {
@@ -118,6 +202,28 @@ describe('versioned paper-account backup', () => {
     const before = storage.snapshot()
 
     expect(() => restoreBackup(JSON.stringify(bad))).toThrow('Invalid derivatives lab data')
+    expect(storage.snapshot()).toEqual(before)
+  })
+
+  it.each([
+    ['unsupported leg strategy', (p: any) => { p.legs = [{ type: 'call', strike: 20_000, side: -1 }] }],
+    ['non-finite quantity', (p: any) => { p.units = Number.NaN }],
+    ['oversized quantity', (p: any) => { p.units = 1_000_001 }],
+    ['forged collateral', (p: any) => { p.margin += 1 }],
+  ])('rejects %s without changing any ledger', (_name, alter) => {
+    const source = JSON.parse(exportBackup())
+    const position = createOption('bull-call')
+    source.derivatives.positions = [position]
+    alter(source.derivatives.positions[0])
+    const before = storage.snapshot()
+
+    expect(() => restoreBackup(JSON.stringify(source))).toThrow()
+    expect(storage.snapshot()).toEqual(before)
+  })
+
+  it('rejects corrupt JSON without changing any ledger', () => {
+    const before = storage.snapshot()
+    expect(() => restoreBackup('{"format":"alpha-paper-backup","version":2,"state":NaN}')).toThrow()
     expect(storage.snapshot()).toEqual(before)
   })
 

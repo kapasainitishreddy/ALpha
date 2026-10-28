@@ -1,7 +1,8 @@
 import { useStore } from '@/store/useStore'
 import { validateCandles } from './historical'
 import { MOCK_SYMBOLS } from '@/data/mockSymbols'
-import type { DerivativeBook } from './derivatives'
+import { legValue, type DerivativeBook, type OptionStructure } from './derivatives'
+import { priceOption } from './options'
 
 const mainFields = [
   'language',
@@ -61,17 +62,18 @@ const finite = (n: unknown) => typeof n === 'number' && Number.isFinite(n)
 const text = (v: unknown, max = 2000) => typeof v === 'string' && v.length <= max
 
 function validateDerivativeBook(value: unknown): value is DerivativeBook {
-  if (!isRecord(value) || value.version !== 1 || !finite(value.balance) || value.balance < 0 ||
+  if (!isRecord(value) || value.version !== 1 || !finite(value.balance) || value.balance < -1_000_000_000_000 ||
     !Number.isInteger(value.idx) || value.idx < 20 || value.idx >= 120 ||
     typeof value.symbol !== 'string' || !MOCK_SYMBOLS.some((s) => s.symbol === value.symbol) ||
     !Array.isArray(value.positions) || value.positions.length > 1000) return false
   const ids = new Set<string>()
+  let reserved = 0
   for (const p of value.positions as unknown[]) {
     if (!isRecord(p) || !text(p.id, 120) || ids.has(p.id) ||
       !['future', 'option'].includes(p.kind) || typeof p.symbol !== 'string' ||
       !MOCK_SYMBOLS.some((s) => s.symbol === p.symbol) ||
-      !Number.isInteger(p.units) || p.units <= 0 || p.units > 1_000_000 ||
-      ![1, -1].includes(p.side) || !finite(p.entry) || p.entry <= 0 ||
+      !finite(p.units) || p.units <= 0 || p.units > 1_000_000 ||
+      ![1, -1].includes(p.side) || !finite(p.entry) ||
       !Number.isInteger(p.openedIdx) || p.openedIdx < 0 || p.openedIdx > value.idx ||
       !Number.isInteger(p.expiryIdx) || p.expiryIdx <= p.openedIdx || p.expiryIdx > 180 ||
       !finite(p.iv) || p.iv < 1 || p.iv > 100 || !finite(p.margin) || p.margin < 0 ||
@@ -81,14 +83,65 @@ function validateDerivativeBook(value: unknown): value is DerivativeBook {
       (p.variationPnl !== undefined && !finite(p.variationPnl)) ||
       (p.closedPnl !== undefined && !finite(p.closedPnl)) ||
       (p.closedIdx !== undefined && (!Number.isInteger(p.closedIdx) || p.closedIdx < p.openedIdx || p.closedIdx > value.idx)) ||
-      (p.reason !== undefined && !text(p.reason, 300))) return false
+      (p.reason !== undefined && !text(p.reason, 300)) ||
+      ((p.closedPnl === undefined) !== (p.closedIdx === undefined)) ||
+      ((p.closedPnl === undefined) !== (p.reason === undefined))) return false
     ids.add(p.id)
     for (const leg of p.legs as unknown[]) {
       if (!isRecord(leg) || !['call', 'put'].includes(leg.type) ||
         !finite(leg.strike) || leg.strike <= 0 || ![1, -1].includes(leg.side)) return false
     }
+    if (p.kind === 'future') {
+      if (p.entry <= 0 || p.side !== 1 && p.side !== -1 || p.legs.length !== 0) return false
+      const openingEntry = p.entry - (p.variationPnl ?? 0) / (p.units * p.side)
+      if (!finite(openingEntry) || openingEntry <= 0) return false
+      const expectedMargin = openingEntry * p.units * 0.1
+      const expectedFee = openingEntry * p.units * 0.0008
+      if (!closeEnough(p.margin, expectedMargin) || !closeEnough(p.entryFee, expectedFee)) return false
+    } else {
+      if (p.side !== 1 || p.variationPnl !== undefined) return false
+      const shape = inferOptionShape(p.legs as Array<{ type: string; strike: number; side: number }>)
+      if (!shape) return false
+      const days = p.expiryIdx - p.openedIdx
+      const expectedEntry = legValue(p.legs, shape.spot, days, p.iv)
+      if (!closeEnough(p.entry, expectedEntry)) return false
+      const notional = p.legs.reduce((sum: number, leg: { type: 'call' | 'put'; strike: number }) =>
+        sum + priceOption(shape.spot, leg.strike, leg.type, days, p.iv).premium * p.units, 0)
+      const expectedMargin = shape.structure === 'iron-condor'
+        ? Math.max(0, shape.width + expectedEntry) * p.units
+        : Math.max(0, expectedEntry) * p.units
+      if (!closeEnough(p.margin, expectedMargin) || !closeEnough(p.entryFee, notional * 0.0008)) return false
+    }
+    if (p.closedPnl === undefined) reserved += p.margin + p.entryFee
   }
-  return true
+  const negativeBalanceHasFutureLoss = value.balance >= 0 ||
+    value.positions.some((p: any) => p.kind === 'future' && p.closedPnl !== undefined)
+  return Number.isFinite(reserved) && reserved <= Math.max(0, value.balance) + 1e-8 && negativeBalanceHasFutureLoss
+}
+
+function closeEnough(actual: number, expected: number): boolean {
+  return Number.isFinite(expected) && Math.abs(actual - expected) <= Math.max(1, Math.abs(expected)) * 1e-9
+}
+
+function inferOptionShape(legs: Array<{ type: string; strike: number; side: number }>):
+  { structure: OptionStructure; spot: number; width: number } | null {
+  const is = (i: number, type: string, side: number) => legs[i]?.type === type && legs[i]?.side === side
+  if (legs.length === 1 && is(0, 'call', 1)) return { structure: 'call', spot: legs[0].strike, width: 0 }
+  if (legs.length === 1 && is(0, 'put', 1)) return { structure: 'put', spot: legs[0].strike, width: 0 }
+  if (legs.length === 2 && is(0, 'call', 1) && is(1, 'call', -1) && legs[1].strike > legs[0].strike)
+    return { structure: 'bull-call', spot: legs[0].strike, width: legs[1].strike - legs[0].strike }
+  if (legs.length === 2 && is(0, 'put', 1) && is(1, 'put', -1) && legs[0].strike > legs[1].strike)
+    return { structure: 'bear-put', spot: legs[0].strike, width: legs[0].strike - legs[1].strike }
+  if (legs.length === 2 && is(0, 'call', 1) && is(1, 'put', 1) && legs[0].strike === legs[1].strike)
+    return { structure: 'straddle', spot: legs[0].strike, width: 0 }
+  if (legs.length === 4 && is(0, 'put', -1) && is(1, 'put', 1) &&
+    is(2, 'call', -1) && is(3, 'call', 1)) {
+    const width = legs[0].strike - legs[1].strike
+    const upperWidth = legs[3].strike - legs[2].strike
+    if (width > 0 && closeEnough(width, upperWidth) && legs[2].strike > legs[0].strike)
+      return { structure: 'iron-condor', spot: (legs[0].strike + legs[2].strike) / 2, width }
+  }
+  return null
 }
 
 function validateResearchNote(value: unknown): value is string[] {
